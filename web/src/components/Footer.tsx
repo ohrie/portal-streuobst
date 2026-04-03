@@ -51,8 +51,7 @@ export default function Footer() {
                             Gemeinsam für den Schutz traditioneller Obstkultur und biologischer Vielfalt.
                         </p>
 
-                        {/* TODO */}
-                        {/* <p className="text-background mb-8 max-w-md mx-auto md:mx-0 leading-relaxed">
+                        <p className="text-background mb-8 max-w-md mx-auto md:mx-0 leading-relaxed">
                             Dieses Portal ist ein gemeinschaftliches Open-Source-Projekt.{' '}
                             <Link
                                 href="https://github.com/ohrie/portal-streuobst"
@@ -63,7 +62,7 @@ export default function Footer() {
                                 Mitwirken auf GitHub
                                 <ExternalLink className="w-3 h-3" />
                             </Link>
-                        </p> */}
+                        </p>
 
                         <p className="text-sm text-light">
                             Gemacht mit ❤️ und 🍎 für die Streuobstwiesen
@@ -105,8 +104,7 @@ export default function Footer() {
                                     </Link>
                                 </div>
                             ))}
-                            {/* TODO */}
-                            {/* <div>
+                            <div>
                                 <Link
                                     href="https://github.com/ohrie/portal-streuobst"
                                     target="_blank"
@@ -116,7 +114,7 @@ export default function Footer() {
                                     <Image src="/github.svg" alt="GitHub" width={16} height={16} className="invert opacity-70" />
                                     Quellcode auf GitHub
                                 </Link>
-                            </div> */}
+                            </div>
                         </nav>
                     </div>
                 </div>
