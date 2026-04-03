@@ -1,0 +1,23 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Japfel Streuobstwiesen",
+        "partner": "Japfel",
+        "description": "Baumpatenschaften und Baumpflanzungen im Jagsttal",
+        "logo": "/partner/Japfel_Logo.png",
+        "website": "https://japfel.de",
+        "type": "partner"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          9.471395,
+          49.309795
+        ]
+      }
+    }
+  ]
+}

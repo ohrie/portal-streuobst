@@ -1,0 +1,115 @@
+name: Deploy Web to Server
+
+on:
+  workflow_call:
+    inputs:
+      registry:
+        required: true
+        type: string
+      image_name:
+        required: true
+        type: string
+      ssh_user:
+        required: true
+        type: string
+      web_deploy_path:
+        required: true
+        type: string
+    secrets:
+      SSH_HOST:
+        required: true
+      SSH_PASS:
+        required: true
+      DOCKER_REGISTRY_USERNAME:
+        required: true
+      DOCKER_REGISTRY_PASSWORD:
+        required: true
+
+jobs:
+  deploy:
+    name: Deploy Web to Server
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    
+    steps:
+      - name: Validate configuration
+        run: |
+          echo "🔍 Validating configuration..."
+          echo "SSH_HOST: ${{ secrets.SSH_HOST != '' && '✅ Set' || '❌ Not set' }}"
+          echo "SSH_USER: ${{ inputs.ssh_user != '' && '✅ Set' || '❌ Not set' }}"
+          echo "SSH_PASS: ${{ secrets.SSH_PASS != '' && '✅ Set' || '❌ Not set' }}"
+          echo "WEB_DEPLOY_PATH: ${{ inputs.web_deploy_path != '' && '✅ Set' || '❌ Not set' }}"
+          
+          if [ -z "${{ secrets.SSH_HOST }}" ]; then
+            echo "❌ Error: SSH_HOST secret is not set"
+            exit 1
+          fi
+          if [ -z "${{ inputs.ssh_user }}" ]; then
+            echo "❌ Error: SSH_USER variable is not set (check GitHub Variables)"
+            exit 1
+          fi
+          if [ -z "${{ secrets.SSH_PASS }}" ]; then
+            echo "❌ Error: SSH_PASS secret is not set"
+            exit 1
+          fi
+          if [ -z "${{ inputs.web_deploy_path }}" ]; then
+            echo "❌ Error: WEB_DEPLOY_PATH variable is not set (check GitHub Variables)"
+            echo "ℹ️  Go to: Repository Settings → Secrets and variables → Actions → Variables"
+            exit 1
+          fi
+          echo "✅ All required values are set"
+
+      - name: Install sshpass
+        run: sudo apt-get update && sudo apt-get install -y sshpass
+
+      - name: Setup SSH
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H "$SSH_HOST" >> ~/.ssh/known_hosts
+
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Deploy to server
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ inputs.ssh_user }}
+          SSH_PASS: ${{ secrets.SSH_PASS }}
+          DEPLOY_PATH: ${{ inputs.web_deploy_path }}
+          REGISTRY: ${{ inputs.registry }}
+          IMAGE_NAME: ${{ inputs.image_name }}
+          DOCKER_REGISTRY_USERNAME: ${{ secrets.DOCKER_REGISTRY_USERNAME }}
+          DOCKER_REGISTRY_PASSWORD: ${{ secrets.DOCKER_REGISTRY_PASSWORD }}
+        run: |
+          # Validate all variables are set
+          if [ -z "$SSH_HOST" ] || [ -z "$SSH_USER" ] || [ -z "$SSH_PASS" ] || [ -z "$DEPLOY_PATH" ]; then
+            echo "Error: One or more required environment variables are empty"
+            exit 1
+          fi
+          
+          # Copy docker-compose.yml to server
+          sshpass -p "$SSH_PASS" scp -o StrictHostKeyChecking=no docker-compose.yml "$SSH_USER@$SSH_HOST:$DEPLOY_PATH/"
+          
+          # Deploy on server
+          sshpass -p "$SSH_PASS" ssh -o StrictHostKeyChecking=no "$SSH_USER@$SSH_HOST" << ENDSSH
+            cd "$DEPLOY_PATH"
+            
+            # Login to Docker registry
+            echo "$DOCKER_REGISTRY_PASSWORD" | docker login $REGISTRY -u "$DOCKER_REGISTRY_USERNAME" --password-stdin
+            
+            # Pull latest image
+            docker pull $REGISTRY/$IMAGE_NAME:latest
+            
+            # Stop and remove old container
+            docker compose down || true
+            
+            # Start new container
+            docker compose up -d
+            
+            # Cleanup old images
+            docker image prune -f
+            
+            echo "✅ Deployment complete"
+          ENDSSH

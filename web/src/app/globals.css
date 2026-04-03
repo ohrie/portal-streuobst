@@ -1,0 +1,102 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #754c82;
+  --color-secondary: #465902;
+  --color-tertiary: #667302;
+  --color-accent: #D9BC2B;
+  --color-light: #F2DC9B;
+  --color-accent-hover: #C5A826;
+  --color-accent-dark: #B19821;
+  --color-background: #faf4e1;
+  --color-foreground: #465902;
+
+  --font-family-heading: "Epunda Slab", serif;
+  --font-family-body: "Roboto", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
+body {
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-family-body), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+/* Headings use Arbutus Slab */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-family-heading);
+}
+
+/* MapLibre GL styles */
+.maplibregl-map {
+  font-family: var(--font-family-body), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.maplibregl-popup-content {
+  background: var(--color-light);
+  color: var(--color-secondary);
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(70, 89, 2, 0.2);
+}
+
+.maplibregl-popup-anchor-bottom .maplibregl-popup-tip {
+  border-top-color: var(--color-accent);
+}
+
+.maplibregl-popup-anchor-top .maplibregl-popup-tip {
+  border-bottom-color: var(--color-accent);
+}
+
+.maplibregl-popup-anchor-left .maplibregl-popup-tip {
+  border-right-color: var(--color-accent);
+}
+
+.maplibregl-popup-anchor-right .maplibregl-popup-tip {
+  border-left-color: var(--color-accent);
+}
+
+/* Bento Grid Layout - no borders, centered content */
+.bento-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+  padding: 1.5rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+@media (min-width: 768px) {
+  .bento-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.bento-item {
+  border-radius: 20px;
+  padding: 2rem;
+  background: var(--color-light);
+  text-align: center;
+}
+
+/* Centered content utility */
+.centered-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+  text-align: center;
+  display: block;
+}

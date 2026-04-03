@@ -1,0 +1,26 @@
+services:
+  streuobstwiesen-pipeline:
+    image: ${DOCKER_REGISTRY}/streuobstwiesen-pipeline:latest
+    # build:
+    #   context: .
+    #   dockerfile: Dockerfile
+    container_name: streuobstwiesen-processing
+    volumes:
+      # Mount data directories to persist between runs
+      - ./data:/app/data
+      - ./temp:/app/temp
+      - ./output:/app/output
+      # Mount logs
+      - ./logs:/app/logs
+    environment:
+      # Load from .env file (if needed)
+      - SMTP_FROM=${SMTP_FROM}
+      - SMTP_TO=${SMTP_TO}
+      - SMTP_SERVER=${SMTP_SERVER}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASS=${SMTP_PASS}
+    # Resource limits
+    mem_limit: 4g
+    cpus: 4
+    restart: "no"  # Don't restart automatically - run on schedule

@@ -1,0 +1,26 @@
+services:
+  tileserver:
+    profiles: []
+    ports:
+      - "8080:8080"
+
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_TILE_SERVER_URL: http://localhost:8080
+        NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN: ${NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN}
+    image: streuobstwiesen-karte:local
+    pull_policy: build
+    ports:
+      - "3000:80"
+
+  tree-api:
+    build:
+      context: ./tree-detection
+      dockerfile: Dockerfile.api
+    image: streuobstwiesen-tree-api:local
+    pull_policy: build
+    ports:
+      - "8000:8000"

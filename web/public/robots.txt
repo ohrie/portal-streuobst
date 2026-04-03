@@ -1,0 +1,7 @@
+# Allow all crawlers by default
+User-agent: *
+Allow: /
+
+# Disallow privacy and imprint pages
+Disallow: /datenschutz/
+Disallow: /impressum/

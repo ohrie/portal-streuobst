@@ -1,0 +1,67 @@
+name: Deploy Pipeline to Server
+
+on:
+  workflow_call:
+    inputs:
+      registry:
+        required: true
+        type: string
+      image_name:
+        required: true
+        type: string
+      ssh_user:
+        required: true
+        type: string
+      deploy_path:
+        required: true
+        type: string
+    secrets:
+      SSH_HOST:
+        required: true
+      SSH_PASS:
+        required: true
+      DOCKER_REGISTRY_USERNAME:
+        required: true
+      DOCKER_REGISTRY_PASSWORD:
+        required: true
+
+jobs:
+  deploy:
+    name: Deploy Pipeline to Server
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Sync files to server
+        uses: appleboy/scp-action@v1
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ inputs.ssh_user }}
+          password: ${{ secrets.SSH_PASS }}
+          source: "data-processing/"
+          target: ${{ inputs.deploy_path }}
+          strip_components: 1
+
+      - name: Setup environment on server
+        uses: appleboy/ssh-action@v1
+        env:
+          DEPLOY_PATH: ${{ inputs.deploy_path }}
+          REGISTRY: ${{ inputs.registry }}
+          IMAGE_NAME: ${{ inputs.image_name }}
+          DOCKER_REGISTRY_USERNAME: ${{ secrets.DOCKER_REGISTRY_USERNAME }}
+          DOCKER_REGISTRY_PASSWORD: ${{ secrets.DOCKER_REGISTRY_PASSWORD }}
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ inputs.ssh_user }}
+          password: ${{ secrets.SSH_PASS }}
+          envs: DEPLOY_PATH,REGISTRY,IMAGE_NAME,DOCKER_REGISTRY_USERNAME,DOCKER_REGISTRY_PASSWORD
+          script: |
+            cd "$DEPLOY_PATH"
+            chmod +x *.sh 2>/dev/null || true
+            echo "$DOCKER_REGISTRY_PASSWORD" | docker login "$REGISTRY" -u "$DOCKER_REGISTRY_USERNAME" --password-stdin
+            docker pull "$REGISTRY/$IMAGE_NAME:latest" || true
+            docker compose up -d --remove-orphans
+            echo "✅ Environment setup complete"

@@ -1,0 +1,115 @@
+# Feature-Ideen: Analysen & Tools für Streuobstwiesen-Pächter
+
+## Context
+
+Das Portal zeigt aktuell >101.000 Streuobstwiesen aus OSM, ermöglicht Flächenmessung, Baumerkennung (BW-only via LiDAR), Schutzgebietslayer und Detailinfos per Klick. Was fehlt: Werkzeuge, die einem **Pächter/Eigentümer** aktiv helfen, seine eigene Wiese besser zu kennen, zu pflegen und zu planen. Die Karte ist derzeit primär eine Entdeckungs- und Kartierungsplattform – noch kein Werkzeug für die laufende Bewirtschaftung.
+
+---
+
+## Feature-Vorschläge (mind. 6)
+
+### 1. Baumkataster — individuelles Baumregister pro Fläche
+
+**Was:** Für jede Fläche können einzelne Bäume erfasst werden (per Klick auf der Karte oder via Import). Pro Baum: Obstsorte, Pflanzjahr/geschätztes Alter, Gesundheitszustand, Notizen, Fotos.
+
+**Warum nützlich:** Viele Pächter kennen ihre Bäume nicht systematisch. Ohne Kataster fehlt die Grundlage für Pflege- und Ertragsplanung. Bestehende Baumerkennung (LiDAR-Punkte) liefert bereits Positionen – diese könnten als Startpunkt dienen.
+
+**Technisch:** Verortet auf der Karte als editierbare Punkte. Lokale Speicherung im Browser (IndexedDB, wie der Tree-Detection-Cache) als MVP; später optionaler Cloud-Export/Import als GeoJSON. Sortenauswahl via Dropdown mit ~50 häufigen Hochstammsorten (Malus, Pyrus, Prunus).
+
+**Anknüpfung ans Bestehende:** LiDAR-Baumdetektionspunkte können als Grundlage importiert werden. OSM-Baumlayer (`natural=tree`) ebenfalls.
+
+---
+
+### 2. Saisonaler Pflegekalender mit Sortenanpassung
+
+**Was:** Ein Pflegekalender, der zeigt, was im aktuellen Monat auf der Wiese ansteht: Winterschnitt, Sommerausdünnungsschnitt, Mähzeitpunkte (Rücksicht auf Blühphasen), Behandlungen, Erntezeiträume. Anpassbar an erfasste Sorten (Feature 1) und Region (Bundesland/PLZ).
+
+**Warum nützlich:** Eines der größten Wissensprobleme bei Neuübernehmern: „Wann muss ich was tun?" Bestehende Seite `/bewirtschaftung` beschreibt Optionen, aber keinen Kalender.
+
+**Technisch:** Statische Tabelle mit Monat × Pflegemaßnahme × Sortengruppe (Äpfel, Birnen, Steinobst). Dargestellt als Jahresring oder Timeline-Ansicht. Keine externen APIs nötig, rein Frontend. Highlight: aktueller Monat, regionale Verschiebung (Süddeutschland 2 Wochen früher als Norden) via Bundesland-Selektor.
+
+**Anknüpfung ans Bestehende:** Passt auf eine neue Unterseite `/pflege` oder kann in `/bewirtschaftung` integriert werden.
+
+---
+
+### 3. Fördermittel-Finder nach Standort
+
+**Was:** Nutzer gibt PLZ oder wählt per Klick einen Standort auf der Karte. Das Tool listet verfügbare Förderprogramme: Landes-Agrarumweltprogramme (z. B. FAKT in BW, KULAP in Bayern), Bundesförderprogramme, kommunale Förderungen, Stiftungen.
+
+**Warum nützlich:** Fördermittel sind oft unbekannt oder schwer findbar. Je nach Bundesland gibt es bis zu 500 €/ha und Jahr für Streuobst. Die `/wissen`-Seite verlinkt bereits Landesressourcen – aber kein strukturierter Finder.
+
+**Technisch:** Statische JSON-Datenbank mit Förderprogrammen (Bundesland, Förderhöhe, Antragsfrist, Antragsstelle, Link). Matching via Bundesland aus der Karte-Koordinate (Reverse-Geocoding via OSM Nominatim API oder statische GeoJSON-Grenzen). Kein Backend nötig.
+
+**Anknüpfung ans Bestehende:** Schutzgebietslayer (BfN-WMS) zeigt bereits, ob eine Fläche in NSG/FFH liegt – was Förderfähigkeit beeinflusst.
+
+---
+
+### 4. Ernteschätzung & Ertragsbilanz
+
+**Was:** Auf Basis von Baumanzahl (aus Kataster/LiDAR-Erkennung), Sorte und Altersschätzung wird ein jährlicher Rohertrag in kg und Liter Saft geschätzt. Optional: was ist der Ernteüberschuss, wo kann er verwertet werden (Links zu regionalen Mosterein aus bestehender `/wissen`-Datenbank).
+
+**Warum nützlich:** Viele Pächter unterschätzen ihren Ertrag und planen keine Verwertung – Früchte fallen und verfaulen. Eine einfache Schätzung schafft Bewusstsein und motiviert zur Planung.
+
+**Technisch:** Formel: Baumanzahl × sortenspezifischer Durchschnittsertrag (Hochstamm Apfel ~50-150 kg/Baum/Jahr × Korrekturfaktor Alter). Dargestellt als einfacher Rechner im Popup oder in einer Seitenleiste nach Feature-Auswahl. Verknüpfung mit Mostereien via statischer Geodatenbank (PLZ → nächste Mosterei-Optionen).
+
+**Anknüpfung ans Bestehende:** Baumerkennung liefert Baumanzahl → direkt verwendbar als Input.
+
+---
+
+### 5. Pflegedokumentation / digitales Wiesenbuch
+
+**Was:** Ein Logbuch, in dem Pächter Ereignisse auf ihrer Fläche protokollieren: „15.02.2026 – Winterschnitt an 12 Bäumen", „03.09.2026 – Ernte: 320 kg Äpfel", „Schäden durch Spätfrost festgestellt". Mit Datum, Kategorie (Schnitt, Ernte, Pflanzung, Schaden, Beobachtung) und optionalem Foto.
+
+**Warum nützlich:** Für Fördernachweise, Übergaben an Nachpächter, Naturschutzdokumentation und eigene Lernkurve. Viele Behörden verlangen bei Agrarumweltprogrammen Aufzeichnungen.
+
+**Technisch:** Lokale Speicherung (localStorage/IndexedDB) als MVP. Einträge pro OSM-ID-Fläche. Export als PDF oder CSV. Keine Serverinfrastruktur nötig. Kategorien als feste Auswahl + Freitextfeld.
+
+**Anknüpfung ans Bestehende:** An OSM-ID der Fläche geknüpft (wie Tree-Detection-Cache); direkt im Popup-Seitenbereich oder neues Drawer-Element.
+
+---
+
+### 6. Biodiversitäts-Schnellcheck & iNaturalist-Integration
+
+**Was:** Für eine ausgewählte Streuobstwiese werden bekannte Beobachtungen aus iNaturalist (offene API) geladen und auf der Karte angezeigt: welche Arten wurden dort oder in der Umgebung bereits dokumentiert? Außerdem: kurze Checkliste, was eine gut bewirtschaftete Streuobstwiese ausmacht (Totholz, offene Bodenstellen, Kopfweiden etc.) als Self-Assessment.
+
+**Warum nützlich:** Streuobstwiesen sind Hotspots für Biodiversität (5.000+ Arten). Viele Pächter wissen nicht, was auf ihrer Fläche lebt. Beobachtungen motivieren und helfen, Pflegemaßnahmen naturschutzfachlich zu begründen.
+
+**Technisch:** iNaturalist Observations API (öffentlich, kein Auth nötig) mit Bounding-Box-Query der Flächengeometrie. Darstellung als Punkte auf Karte mit Artenname + Foto. Self-Assessment: statische Checkliste (10-12 Kriterien) mit lokalem Speichern des Ergebnisses.
+
+**Anknüpfung ans Bestehende:** Schutzgebietslayer (NSG/FFH) korreliert mit Artenvielfalt → sinnvoller gemeinsamer Kontext.
+
+---
+
+### Bonus: 7. Sortenbestimmungs-Assistent (KI-gestützt)
+
+**Was:** Nutzer lädt Foto von Blatt, Blüte oder Frucht hoch → KI identifiziert die Obstsorte (Cultivar). Alternativ: schrittweiser Bestimmungsschlüssel (Entscheidungsbaum mit Fragen zu Fruchtform, Farbe, Reifezeitpunkt).
+
+**Warum nützlich:** Sortenvielfalt auf alten Streuobstwiesen ist enorm und oft unbekannt. Wissen über Sorten ist Grundlage für Vermarktung, Pflege und Förderanträge.
+
+**Technisch:** Entscheidungsbaum = rein statisch umsetzbar (keine API). KI-Variante = Aufruf der Claude Vision API (claude-sonnet-4-6) mit Foto + Prompt „Bestimme die Obstsorte". Würde Anthropic-API-Key im Backend erfordern.
+
+---
+
+## Priorisierung nach Aufwand/Nutzen
+
+| Feature | Aufwand | Nutzen für Pächter | Technisch komplex? |
+|---|---|---|---|
+| Pflegekalender | Niedrig | Hoch | Nein |
+| Fördermittel-Finder | Niedrig-Mittel | Sehr hoch | Nein (statische Daten) |
+| Ernteschätzung | Niedrig | Mittel | Nein |
+| Pflegedokumentation | Mittel | Hoch | Nein (lokale Speicherung) |
+| Baumkataster | Mittel-Hoch | Sehr hoch | Mittel |
+| Biodiversitäts-Check | Mittel | Mittel-Hoch | Mittel (externe API) |
+| Sortenbestimmung (Baum) | Niedrig | Hoch | Nein |
+| Sortenbestimmung (KI) | Mittel | Hoch | Ja (Backend nötig) |
+
+**Empfohlene Reihenfolge:** Pflegekalender → Fördermittel-Finder → Ernteschätzung (alle drei ohne Backend, hoher Impact) → dann Baumkataster + Pflegedokumentation als zusammenhängendes „Meine Wiese"-Feature.
+
+## Kritische Dateien für spätere Implementierung
+
+- [src/app/karte/page.tsx](src/app/karte/page.tsx) — Hauptkarte, Popup-Integration
+- [src/components/map/OSMPopup.tsx](src/components/map/OSMPopup.tsx) — Popup-Erweiterungen
+- [src/components/map/MeasurePanel.tsx](src/components/map/MeasurePanel.tsx) — Seitenbereich für Flächen-Tools
+- [src/lib/treeDetectionCache.ts](src/lib/treeDetectionCache.ts) — IndexedDB-Muster für lokale Speicherung
+- [src/app/bewirtschaftung/page.tsx](src/app/bewirtschaftung/page.tsx) — Pflegekalender könnte hier integriert werden
+- [src/app/wissen/page.tsx](src/app/wissen/page.tsx) — Fördermittel-Daten passen hierhin oder eigene Seite

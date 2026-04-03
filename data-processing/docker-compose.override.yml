@@ -1,0 +1,6 @@
+services:
+  streuobstwiesen-pipeline:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: streuobstwiesen-pipeline:local

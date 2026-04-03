@@ -1,0 +1,112 @@
+name: Deployment
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+env:
+  REGISTRY: ${{ vars.DOCKER_REGISTRY }}
+  IMAGE_NAME_WEB: streuobstwiesen-karte
+  IMAGE_NAME_PIPELINE: streuobstwiesen-pipeline
+
+jobs:
+  detect-changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      web: ${{ steps.filter.outputs.web }}
+      pipeline: ${{ steps.filter.outputs.pipeline }}
+      tree_api: ${{ steps.filter.outputs.tree_api }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Check changed paths
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            web:
+              - 'web/**'
+              - 'docker-compose.yml'
+            pipeline:
+              - 'data-processing/**'
+            tree_api:
+              - 'tree-detection/**'
+
+  build-web:
+    name: Build Web Docker Image
+    needs: detect-changes
+    if: needs.detect-changes.outputs.web == 'true'
+    uses: ./.github/workflows/build-web.yml
+    with:
+      registry: ${{ vars.DOCKER_REGISTRY }}
+      image_name: streuobstwiesen-karte
+    secrets:
+      DOCKER_REGISTRY_USERNAME: ${{ secrets.DOCKER_REGISTRY_USERNAME }}
+      DOCKER_REGISTRY_PASSWORD: ${{ secrets.DOCKER_REGISTRY_PASSWORD }}
+      NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN: ${{ secrets.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN }}
+
+  build-tree-api:
+    name: Build Tree API Docker Image
+    needs: detect-changes
+    if: needs.detect-changes.outputs.tree_api == 'true'
+    uses: ./.github/workflows/build-tree-api.yml
+    with:
+      registry: ${{ vars.DOCKER_REGISTRY }}
+      image_name: streuobstwiesen-tree-api
+    secrets:
+      DOCKER_REGISTRY_USERNAME: ${{ secrets.DOCKER_REGISTRY_USERNAME }}
+      DOCKER_REGISTRY_PASSWORD: ${{ secrets.DOCKER_REGISTRY_PASSWORD }}
+
+  deploy-web:
+    name: Deploy Web to Server
+    needs: [detect-changes, build-web, build-tree-api]
+    if: |
+      always() && !failure() && !cancelled() &&
+      (needs.detect-changes.outputs.web == 'true' || needs.detect-changes.outputs.tree_api == 'true')
+    uses: ./.github/workflows/deploy-web.yml
+    with:
+      registry: ${{ vars.DOCKER_REGISTRY }}
+      image_name: streuobstwiesen-karte
+      ssh_user: ${{ vars.SSH_USER }}
+      web_deploy_path: ${{ vars.WEB_DEPLOY_PATH }}
+    secrets:
+      SSH_HOST: ${{ secrets.SSH_HOST }}
+      SSH_PASS: ${{ secrets.SSH_PASS }}
+      DOCKER_REGISTRY_USERNAME: ${{ secrets.DOCKER_REGISTRY_USERNAME }}
+      DOCKER_REGISTRY_PASSWORD: ${{ secrets.DOCKER_REGISTRY_PASSWORD }}
+
+  build-pipeline:
+    name: Build Pipeline Docker Image
+    needs: detect-changes
+    if: needs.detect-changes.outputs.pipeline == 'true'
+    permissions:
+      contents: read
+      packages: write
+    uses: ./.github/workflows/build-pipeline.yml
+    with:
+      registry: ${{ vars.DOCKER_REGISTRY }}
+      image_name: streuobstwiesen-pipeline
+    secrets:
+      DOCKER_REGISTRY_USERNAME: ${{ secrets.DOCKER_REGISTRY_USERNAME }}
+      DOCKER_REGISTRY_PASSWORD: ${{ secrets.DOCKER_REGISTRY_PASSWORD }}
+
+  deploy-pipeline:
+    name: Deploy Pipeline to Server
+    needs: [detect-changes, build-pipeline]
+    if: needs.detect-changes.outputs.pipeline == 'true'
+    uses: ./.github/workflows/deploy-pipeline.yml
+    with:
+      registry: ${{ vars.DOCKER_REGISTRY }}
+      image_name: streuobstwiesen-pipeline
+      ssh_user: ${{ vars.SSH_USER }}
+      deploy_path: ${{ vars.DEPLOY_PATH }}
+    secrets:
+      SSH_HOST: ${{ secrets.SSH_HOST }}
+      SSH_PASS: ${{ secrets.SSH_PASS }}
+      DOCKER_REGISTRY_USERNAME: ${{ secrets.DOCKER_REGISTRY_USERNAME }}
+      DOCKER_REGISTRY_PASSWORD: ${{ secrets.DOCKER_REGISTRY_PASSWORD }}

@@ -1,0 +1,45 @@
+Streuobstwiesen Portal
+Copyright (C) 2026 Japfel (Gebrüder Chilla GbR)
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+-------------------------------------------------------------------------------
+
+THIRD-PARTY SOFTWARE NOTICES
+
+This project makes use of the following open-source software:
+
+  Next.js        – MIT License    – https://github.com/vercel/next.js
+  React          – MIT License    – https://github.com/facebook/react
+  Tailwind CSS   – MIT License    – https://github.com/tailwindlabs/tailwindcss
+  Turf.js        – MIT License    – https://github.com/Turfjs/turf
+  Lucide React   – ISC License    – https://github.com/lucide-icons/lucide
+  motion         – MIT License    – https://github.com/motiondivision/motion
+  react-modal-sheet – MIT License – https://github.com/Temzasse/react-modal-sheet
+
+THIRD-PARTY SERVICES
+
+  Mapbox GL JS (mapbox-gl ^3.x) is used in this project and is licensed
+  under the Mapbox Terms of Service / Business Source License (BSL), which
+  is NOT an open-source license. The use of Mapbox GL JS is subject to
+  Mapbox's separate terms.
+  See: https://www.mapbox.com/legal/tos
+
+DATA SOURCES
+
+  Map data © OpenStreetMap contributors (https://www.openstreetmap.org)
+  Licensed under the Open Data Commons Open Database License (ODbL) v1.0.
+  See: https://opendatacommons.org/licenses/odbl/
+
+  Protected area data: Bundesamt für Naturschutz (BfN), Germany.

@@ -1,0 +1,71 @@
+services:
+  web:
+    image: ${DOCKER_REGISTRY}/streuobstwiesen-karte:latest
+    container_name: portal-streuobst
+    restart: unless-stopped
+    networks:
+      - streuobst_network
+    labels:
+      traefik.enable: true
+      # HTTPS Router
+      traefik.http.routers.streuobstwiesen.rule: Host(`portal-streuobst.de`)
+      traefik.http.routers.streuobstwiesen.entrypoints: websecure
+      traefik.http.routers.streuobstwiesen.tls: true
+      traefik.http.routers.streuobstwiesen.tls.certresolver: letsencrypt
+      # HTTP Router with redirect to HTTPS
+      traefik.http.routers.streuobstwiesen-http.rule: Host(`portal-streuobst.de`)
+      traefik.http.routers.streuobstwiesen-http.entrypoints: web
+      traefik.http.routers.streuobstwiesen-http.middlewares: streuobst-to-https
+      # Redirect Middleware
+      traefik.http.middlewares.streuobst-to-https.redirectscheme.scheme: https
+      traefik.http.middlewares.streuobst-to-https.redirectscheme.permanent: true
+      # Service
+      traefik.http.services.streuobstwiesen.loadbalancer.server.port: 80
+
+  tileserver:
+    image: maptiler/tileserver-gl
+    command: --config /config.json --verbose
+    labels:
+      traefik.enable: true
+      traefik.http.routers.wiesentileserver.entrypoints: websecure
+      traefik.http.routers.wiesentileserver.rule: Host(`tiles.portal-streuobst.de`)
+      traefik.http.routers.wiesentileserver.tls.certresolver: letsencrypt
+      traefik.http.routers.wiesentileserver.tls: true
+      traefik.http.services.wiesentileserver.loadbalancer.server.port: 8080
+    restart: unless-stopped
+    volumes:
+      - ./tileserver/config.json:/config.json:ro
+      - ${TILES_DATA_DIR:-./data-processing/output}:/data:ro
+    networks:
+      - streuobst_network
+
+  tree-api:
+    image: ${DOCKER_REGISTRY}/streuobstwiesen-tree-api:latest
+    container_name: portal-streuobst-tree-api
+    restart: unless-stopped
+    mem_limit: 4g
+    #ports:
+    #  - "8000:8000"
+    volumes:
+      - ./tree-detection/data:/app/data
+      - ${GEOJSON_PATH:-./data-processing/output/all_streuobstwiesen.geojson}:/app/all_streuobstwiesen.geojson:ro
+    networks:
+      - streuobst_network
+    labels:
+      traefik.enable: true
+      # Route /api/ directly through Traefik (rate-limited)
+      traefik.http.routers.tree-api.rule: "Host(`portal-streuobst.de`) && PathPrefix(`/api/`)"
+      traefik.http.routers.tree-api.entrypoints: websecure
+      traefik.http.routers.tree-api.tls: true
+      traefik.http.routers.tree-api.tls.certresolver: letsencrypt
+      traefik.http.routers.tree-api.middlewares: tree-api-ratelimit
+      traefik.http.services.tree-api.loadbalancer.server.port: 8000
+      # Rate limit: burst of 100, refills 1/min → after exhausting, 20 new after 20 min
+      traefik.http.middlewares.tree-api-ratelimit.ratelimit.average: 1
+      traefik.http.middlewares.tree-api-ratelimit.ratelimit.period: 1m
+      traefik.http.middlewares.tree-api-ratelimit.ratelimit.burst: 100
+      traefik.http.middlewares.tree-api-ratelimit.ratelimit.sourcecriterion.ipstrategy.depth: 1
+
+networks:
+  streuobst_network:
+    name: streuobst_network

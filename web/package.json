@@ -1,0 +1,45 @@
+{
+  "name": "streuobstwiesen-karte",
+  "version": "0.1.0",
+  "description": "Interactive portal for discovering and mapping orchard meadows in Germany",
+  "license": "AGPL-3.0-or-later",
+  "author": "Japfel",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ohrie/portal-streuobst"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "serve": "npx serve@latest out",
+    "lint": "eslint"
+  },
+  "dependencies": {
+    "@fontsource/epunda-slab": "^5.2.1",
+    "@fontsource/roboto": "^5.2.6",
+    "@turf/area": "^7.3.4",
+    "@turf/bbox": "^7.3.4",
+    "@turf/boolean-point-in-polygon": "^7.3.4",
+    "@turf/center-of-mass": "^7.3.4",
+    "lucide-react": "^0.563.0",
+    "mapbox-gl": "^3.14.0",
+    "motion": "^11.15.5",
+    "next": "^16.0.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-modal-sheet": "^5.2.1"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3",
+    "@tailwindcss/postcss": "^4",
+    "@types/mapbox-gl": "^3.4.1",
+    "@types/node": "^24",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "^16.0.0",
+    "tailwindcss": "^4.1.12",
+    "typescript": "^5"
+  }
+}
