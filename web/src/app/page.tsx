@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import { ArrowRight, Map, Database, Info, TreePine, Eye, Network, BookOpen, MapPin } from 'lucide-react';
+import { ArrowRight, Map, Database, Info, TreePine, Eye, Network, BookOpen, MapPin, Mail } from 'lucide-react';
 import Button from '@/components/Button';
 import BentoCard from '@/components/BentoCard';
 import StandardLayout from '@/components/layouts/StandardLayout';
@@ -230,6 +230,22 @@ export default function Home() {
             </div>
           </div>
         </section>
+
+        {/* Mitgestaltung Block */}
+        <section className="py-20 px-4 bg-secondary/10">
+          <div className="max-w-4xl mx-auto">
+            <h2 className="text-3xl font-bold text-foreground mb-6 font-heading text-center">Mitgestaltung</h2>
+            <p className="text-foreground/80 leading-relaxed text-lg">
+              Ob im Code, bei Daten oder mit eigenen Streuobstwiesen vor Ort: Das Streuobst Portal ist offen für Menschen und Organisationen, die sich einbringen möchten. Besonders OGVs und weitere Initiativen können gemeinsam mit uns daran arbeiten, Streuobstwiesen in ganz Deutschland sichtbarer zu machen — etwa, indem eigene Flächen, Projekte und regionale Informationen auf der Plattform und der Karte erscheinen. Wenn du oder ihr Interesse an einer Zusammenarbeit habt, meldet euch gerne und wir bringen die Streuobstwiesen in das digitale Zeitalter.
+            </p>
+            <div className="mt-8 text-center">
+              <Button href="mailto:hallo@portal-streuobst.de" icon={Mail}>
+                Kontakt aufnehmen
+              </Button>
+            </div>
+          </div>
+        </section>
+
         {/* Japfel Initiator Block */}
         <section className="py-16 px-4 bg-light">
           <div className="max-w-4xl mx-auto">
