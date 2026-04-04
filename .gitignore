@@ -19,6 +19,9 @@ web/coverage
 web/.next/
 web/out/
 
+# generated data files (created by data-processing pipeline)
+web/public/stats.json
+
 # production
 web/build
 

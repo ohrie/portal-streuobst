@@ -509,6 +509,30 @@ def save_statistics(stats: dict, output_file: Path) -> bool:
         return False
 
 
+def export_stats_json(stats: dict, json_file: Path) -> bool:
+    """Export the latest statistics as stats.json for the web frontend"""
+    try:
+        total_area = stats.get('orchards_area_ha', 0) + stats.get('streuobstwiesen_area_ha', 0)
+        data = {
+            'date': stats.get('generated', datetime.now().isoformat()),
+            'orchards_count': stats.get('orchards_count', 0),
+            'orchards_area_ha': stats.get('orchards_area_ha', 0),
+            'orchard_meadow_count': stats.get('orchard_meadow_count', 0),
+            'orchard_meadow_area_ha': stats.get('orchard_meadow_area_ha', 0),
+            'streuobstwiesen_count': stats.get('streuobstwiesen_count', 0),
+            'streuobstwiesen_area_ha': stats.get('streuobstwiesen_area_ha', 0),
+            'trees_count': stats.get('trees_count', 0),
+            'total_area_ha': round(total_area, 2),
+        }
+        json_file.parent.mkdir(parents=True, exist_ok=True)
+        with open(json_file, 'w') as f:
+            json.dump(data, f, indent=2)
+        return True
+    except Exception as e:
+        logger.error(f"❌ Failed to export stats.json: {e}")
+        return False
+
+
 def append_stats_csv(stats: dict, csv_file: Path) -> bool:
     """Append statistics as a new row to the cumulative CSV file"""
 
@@ -888,6 +912,10 @@ def main(dry_run: bool = False):
                 csv_file = config.OUTPUT_DIR / "stats.csv"
                 append_stats_csv(stats, csv_file)
                 logger.info(f"   ✅ Statistics appended to {csv_file}")
+
+                web_stats_json = config.BASE_DIR.parent / "web" / "public" / "stats.json"
+                export_stats_json(stats, web_stats_json)
+                logger.info(f"   ✅ stats.json exported to {web_stats_json}")
 
         
     except Exception as e:

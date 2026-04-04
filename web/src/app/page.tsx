@@ -4,6 +4,7 @@ import { ArrowRight, Map, Database, Info, TreePine, Eye, Network, BookOpen, MapP
 import Button from '@/components/Button';
 import BentoCard from '@/components/BentoCard';
 import StandardLayout from '@/components/layouts/StandardLayout';
+import StatsDisplay from '@/components/StatsDisplay';
 
 export default function Home() {
   return (
@@ -58,37 +59,7 @@ export default function Home() {
           </div>
 
           {/* Statistics Section */}
-          <div className="max-w-6xl mx-auto mt-12 px-4">
-            <div className="grid md:grid-cols-2 gap-6">
-              {/* Kartierte Streuobstwiesen */}
-              <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-8 shadow-lg border-2 border-primary/20">
-                <div className="flex items-center gap-4 mb-3">
-                  <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
-                    <Map className="w-6 h-6 text-primary" />
-                  </div>
-                  <div>
-                    <p className="text-4xl md:text-5xl font-black text-primary font-heading">101.000</p>
-                  </div>
-                </div>
-                <p className="text-lg font-semibold text-foreground">Obstgärten insgesamt</p>
-                <p className="text-sm text-gray-600 mt-1">Bereits in OpenStreetMap erfasst</p>
-              </div>
-
-              {/* Erfasste Fläche */}
-              <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-8 shadow-lg border-2 border-accent/20">
-                <div className="flex items-center gap-4 mb-3">
-                  <div className="w-12 h-12 bg-accent/10 rounded-full flex items-center justify-center">
-                    <Database className="w-6 h-6 text-accent" />
-                  </div>
-                  <div>
-                    <p className="text-4xl md:text-5xl font-black text-accent font-heading">210.000</p>
-                  </div>
-                </div>
-                <p className="text-lg font-semibold text-foreground">Hektar erfasst</p>
-                <p className="text-sm text-gray-600 mt-1">Obstgärten-Gesamtfläche in OpenStreetMap</p>
-              </div>
-            </div>
-          </div>
+          <StatsDisplay />
         </section>
 
         {/* Einführung Section */}
