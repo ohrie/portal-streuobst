@@ -2,6 +2,7 @@
 
 import math
 import logging
+import threading
 from pathlib import Path
 
 import requests
@@ -25,6 +26,17 @@ _DEFAULT_HEADERS = {
 
 # Session wird beim ersten Download initialisiert und wiederverwendet
 _session: requests.Session | None = None
+
+# Per-Datei-Locks, damit jede ZIP nur einmal heruntergeladen wird
+_download_locks: dict[str, threading.Lock] = {}
+_download_locks_mutex = threading.Lock()
+
+
+def _get_download_lock(filename: str) -> threading.Lock:
+    with _download_locks_mutex:
+        if filename not in _download_locks:
+            _download_locks[filename] = threading.Lock()
+        return _download_locks[filename]
 
 
 def _get_session() -> requests.Session:
@@ -75,28 +87,34 @@ def download_tile(url_template: str, data_dir: Path, e_km: int, n_km: int) -> Pa
         logger.debug(f"  ZIP bereits vorhanden: {filename}")
         return zip_path
 
-    logger.info(f"  Lade {filename} …")
-    session = _get_session()
-    try:
-        resp = session.get(url, timeout=120, stream=True)
-        if resp.status_code == 403:
-            # Session abgelaufen — Cookie neu holen und einmal wiederholen
-            logger.info("  403 erhalten — Session-Cookie wird erneuert …")
-            global _session
-            _session = None
-            session = _get_session()
+    with _get_download_lock(filename):
+        # Erneut prüfen: ein anderer Thread hat die Datei vielleicht schon heruntergeladen
+        if zip_path.exists():
+            logger.debug(f"  ZIP bereits vorhanden (von anderem Thread): {filename}")
+            return zip_path
+
+        logger.info(f"  Lade {filename} …")
+        session = _get_session()
+        try:
             resp = session.get(url, timeout=120, stream=True)
-        if resp.status_code == 404:
-            logger.info(f"  ZIP nicht verfügbar (404): {filename}")
+            if resp.status_code == 403:
+                # Session abgelaufen — Cookie neu holen und einmal wiederholen
+                logger.info("  403 erhalten — Session-Cookie wird erneuert …")
+                global _session
+                _session = None
+                session = _get_session()
+                resp = session.get(url, timeout=120, stream=True)
+            if resp.status_code == 404:
+                logger.info(f"  ZIP nicht verfügbar (404): {filename}")
+                return None
+            resp.raise_for_status()
+            data_dir.mkdir(parents=True, exist_ok=True)
+            zip_path.write_bytes(resp.content)
+            logger.info(f"  → {filename} ({len(resp.content) / 1024 / 1024:.1f} MB)")
+            return zip_path
+        except requests.RequestException as exc:
+            logger.warning(f"  Download fehlgeschlagen für {filename}: {exc}")
             return None
-        resp.raise_for_status()
-        data_dir.mkdir(parents=True, exist_ok=True)
-        zip_path.write_bytes(resp.content)
-        logger.info(f"  → {filename} ({len(resp.content) / 1024 / 1024:.1f} MB)")
-        return zip_path
-    except requests.RequestException as exc:
-        logger.warning(f"  Download fehlgeschlagen für {filename}: {exc}")
-        return None
 
 
 def download_tiles_for_bbox(

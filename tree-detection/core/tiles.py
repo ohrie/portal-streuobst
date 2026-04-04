@@ -3,6 +3,7 @@
 import re
 import sys
 import logging
+import threading
 import zipfile
 from pathlib import Path
 
@@ -11,6 +12,17 @@ import numpy as np
 from .coords import RES_M
 
 logger = logging.getLogger(__name__)
+
+# Per-Datei-Locks, um Race Conditions bei parallelen Anfragen zu vermeiden
+_file_locks: dict[str, threading.Lock] = {}
+_file_locks_mutex = threading.Lock()
+
+
+def _get_file_lock(name: str) -> threading.Lock:
+    with _file_locks_mutex:
+        if name not in _file_locks:
+            _file_locks[name] = threading.Lock()
+        return _file_locks[name]
 
 # Regex zum Parsen der LGL-BW-Kachelnamen
 _TILE_TIF_RE = re.compile(r"(?:dom1|dgm1)_32_(\d+)_(\d+)_1_bw_\d{4}\.tif$", re.IGNORECASE)
@@ -33,33 +45,38 @@ def _xyz_to_tif(xyz_path: Path) -> Path:
     if tif_path.exists():
         return tif_path
 
-    logger.info(f"Konvertiere {xyz_path.name} → GeoTIFF …")
-    data = np.loadtxt(xyz_path, dtype=np.float32)
+    with _get_file_lock(xyz_path.name):
+        # Erneut prüfen, nachdem der Lock erworben wurde
+        if tif_path.exists():
+            return tif_path
 
-    if data.ndim != 2 or data.shape[1] < 3:
-        logger.warning(f"  Überspringe {xyz_path.name}: keine gültigen XYZ-Daten (shape={data.shape})")
-        return tif_path
+        logger.info(f"Konvertiere {xyz_path.name} → GeoTIFF …")
+        data = np.loadtxt(xyz_path, dtype=np.float32)
 
-    xs = np.unique(data[:, 0])
-    ys = np.unique(data[:, 1])
-    n_cols, n_rows = len(xs), len(ys)
-    x0 = xs.min() - 0.5
-    y1 = ys.max() + 0.5
+        if data.ndim != 2 or data.shape[1] < 3:
+            logger.warning(f"  Überspringe {xyz_path.name}: keine gültigen XYZ-Daten (shape={data.shape})")
+            return tif_path
 
-    x_idx = np.searchsorted(xs, data[:, 0])
-    # y-Achse ist invertiert: größte y = Zeile 0
-    y_idx = (n_rows - 1) - np.searchsorted(ys, data[:, 1])
-    z = np.full((n_rows, n_cols), np.nan, dtype=np.float32)
-    z[y_idx, x_idx] = data[:, 2]
+        xs = np.unique(data[:, 0])
+        ys = np.unique(data[:, 1])
+        n_cols, n_rows = len(xs), len(ys)
+        x0 = xs.min() - 0.5
+        y1 = ys.max() + 0.5
 
-    transform = from_origin(x0, y1, 1.0, 1.0)
-    with rasterio.open(tif_path, "w", driver="GTiff",
-                       height=n_rows, width=n_cols,
-                       count=1, dtype="float32",
-                       crs="EPSG:25832",
-                       transform=transform) as dst:
-        dst.write(z, 1)
-    logger.info(f"  → {tif_path.name}")
+        x_idx = np.searchsorted(xs, data[:, 0])
+        # y-Achse ist invertiert: größte y = Zeile 0
+        y_idx = (n_rows - 1) - np.searchsorted(ys, data[:, 1])
+        z = np.full((n_rows, n_cols), np.nan, dtype=np.float32)
+        z[y_idx, x_idx] = data[:, 2]
+
+        transform = from_origin(x0, y1, 1.0, 1.0)
+        with rasterio.open(tif_path, "w", driver="GTiff",
+                           height=n_rows, width=n_cols,
+                           count=1, dtype="float32",
+                           crs="EPSG:25832",
+                           transform=transform) as dst:
+            dst.write(z, 1)
+        logger.info(f"  → {tif_path.name}")
     return tif_path
 
 
@@ -75,11 +92,12 @@ def _ensure_tifs_from_zips(data_dir: Path) -> None:
                 name = Path(member).name
                 if _TILE_TIF_RE.search(name):
                     # TIF direkt entpacken, falls noch nicht vorhanden
-                    if not next(data_dir.rglob(name), None):
-                        logger.info(f"Entpacke {name} aus {zip_path.name} …")
-                        # Immer flach ins data_dir extrahieren (Pfad ignorieren)
-                        tif_data = zf.read(member)
-                        (data_dir / name).write_bytes(tif_data)
+                    dest = data_dir / name
+                    if not dest.exists():
+                        with _get_file_lock(name):
+                            if not dest.exists():
+                                logger.info(f"Entpacke {name} aus {zip_path.name} …")
+                                dest.write_bytes(zf.read(member))
                 elif _TILE_XYZ_RE.search(name):
                     # XYZ flach ins data_dir schreiben (nicht in ZIP-Unterordner)
                     tif_name = Path(name).stem + ".tif"
@@ -87,8 +105,10 @@ def _ensure_tifs_from_zips(data_dir: Path) -> None:
                         continue
                     xyz_path = data_dir / name
                     if not xyz_path.exists():
-                        logger.info(f"Entpacke {name} aus {zip_path.name} …")
-                        xyz_path.write_bytes(zf.read(member))
+                        with _get_file_lock(name):
+                            if not xyz_path.exists():
+                                logger.info(f"Entpacke {name} aus {zip_path.name} …")
+                                xyz_path.write_bytes(zf.read(member))
                     _xyz_to_tif(xyz_path)
 
 
