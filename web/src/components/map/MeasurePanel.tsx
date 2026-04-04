@@ -29,7 +29,7 @@ export default function MeasurePanel({ features, onClear, isTreeDetectEnabled, o
     return (
         <div className="absolute bottom-4 right-4 z-30 bg-white rounded-lg shadow-lg border border-gray-200 w-64 flex flex-col max-h-[min(90dvh,480px)]">
             {/* Main panel content */}
-            <div className="p-4 flex flex-col min-h-0">
+            <div className="p-4 flex-1 flex flex-col min-h-0 overflow-hidden">
                 {/* Header */}
                 <div className="flex items-center justify-between mb-3 shrink-0">
                     <h3 className="font-bold text-nature text-sm">Ausgewählte Flächen</h3>
@@ -55,11 +55,11 @@ export default function MeasurePanel({ features, onClear, isTreeDetectEnabled, o
                 </div>
 
                 {!isCollapsed && (
-                    <div id={panelContentId}>
+                    <div id={panelContentId} className="flex flex-col min-h-0 flex-1">
                         {features.length === 0 ? (
                             <p className="text-sm text-gray-500 mb-3 shrink-0">Klicke auf eine Fläche zum Auswählen</p>
                         ) : (
-                            <ul className="space-y-2 mb-3 overflow-y-auto min-h-0">
+                            <ul className="space-y-2 mb-3 overflow-y-auto min-h-0 flex-1">
                                 {features.map((f, i) => {
                                     const isLoading = loadingTreeIds.has(String(f.id));
                                     return (
