@@ -129,6 +129,7 @@ export default function MeasurePanel({ features, onClear, isTreeDetectEnabled, o
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1.5">
                         <span className="text-xs font-medium text-gray-700">Bäume automatisch ermitteln</span>
+                        <span className="text-[10px] font-semibold bg-amber-100 text-amber-700 rounded px-1 py-0.5 leading-none">Beta</span>
                         <div className="relative group/info">
                             <Info className="w-3.5 h-3.5 text-gray-400 cursor-help" />
                             <div className="absolute bottom-full right-0 mb-2 w-60 bg-gray-900 text-white text-xs rounded-lg p-2.5 shadow-xl opacity-0 group-hover/info:opacity-100 transition-opacity pointer-events-none z-50 leading-relaxed">
