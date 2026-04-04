@@ -60,12 +60,12 @@ export default function MeasurePanel({ features, onClear, isTreeDetectEnabled, o
                             <p className="text-sm text-gray-500 mb-3 shrink-0">Klicke auf eine Fläche zum Auswählen</p>
                         ) : (
                             <ul className="space-y-2 mb-3 overflow-y-auto min-h-0 flex-1">
-                                {features.map((f, i) => {
+                                {[...features].reverse().map((f, i) => {
                                     const isLoading = loadingTreeIds.has(String(f.id));
                                     return (
                                         <li key={`${f.sourceLayer}:${f.id}`} className="text-sm">
                                             <div className="flex justify-between">
-                                                <span className="text-gray-700 truncate mr-2">{f.name || `Fläche ${i + 1}`}</span>
+                                                <span className="text-gray-700 truncate mr-2">{f.name || `Fläche ${features.length - i}`}</span>
                                                 <span className="text-nature font-medium whitespace-nowrap">{formatArea(f.areaM2)}</span>
                                             </div>
                                             {isLoading ? (
