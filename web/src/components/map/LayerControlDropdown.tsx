@@ -3,6 +3,12 @@
 import { useEffect, useRef, useState } from 'react';
 import MapControlButton from './MapControlButton';
 
+declare global {
+    interface Window {
+        umami?: { track: (name: string, data?: Record<string, unknown>) => void };
+    }
+}
+
 export interface LayerItem {
     id: string;
     label: string;
@@ -74,6 +80,7 @@ export default function LayerControlDropdown({
     }, [isDisabled]);
 
     const handleMainButtonClick = () => {
+        window.umami?.track('layer-control-toggle', { label, action: isAnyActive ? 'deactivate' : 'activate' });
         if (mainButtonOpensPanel) {
             if (isAnyActive) {
                 onToggleAll(); // deactivate all active layers

@@ -4,6 +4,12 @@ import SatelliteIcon from '@/components/icons/SatelliteIcon';
 import MapIcon from '@/components/icons/MapIcon';
 import MapControlButton from './MapControlButton';
 
+declare global {
+    interface Window {
+        umami?: { track: (name: string, data?: Record<string, unknown>) => void };
+    }
+}
+
 interface SatelliteToggleButtonProps {
     isSatelliteView: boolean;
     onToggle: () => void;
@@ -17,10 +23,15 @@ export default function SatelliteToggleButton({
 }: SatelliteToggleButtonProps) {
     const iconClass = 'w-5 h-5';
 
+    const handleClick = () => {
+        window.umami?.track('satellite-toggle', { view: isSatelliteView ? 'map' : 'satellite' });
+        onToggle();
+    };
+
     return (
         <MapControlButton
             isActive={isSatelliteView}
-            onClick={onToggle}
+            onClick={handleClick}
             title={isSatelliteView ? 'Zur Kartenansicht wechseln' : 'Zur Satellitenansicht wechseln'}
             label={isSatelliteView ? 'Straßen' : 'Luftbild'}
             isMobile={isMobile}

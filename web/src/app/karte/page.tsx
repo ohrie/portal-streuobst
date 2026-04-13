@@ -1318,6 +1318,7 @@ export default function MapPage() {
               title={is3DMode ? '3D-Ansicht deaktivieren' : '3D-Ansicht aktivieren'}
               label="Gelände"
               isMobile={true}
+              eventName="3d-toggle"
             >
               <span className={`text-sm font-bold leading-none ${is3DMode ? 'text-primary' : 'text-gray-700 group-hover:text-primary'} transition-colors`}>3D</span>
             </MapControlButton>
@@ -1450,6 +1451,7 @@ export default function MapPage() {
               title={is3DMode ? '3D-Ansicht deaktivieren' : '3D-Ansicht aktivieren'}
               label="Gelände"
               isMobile={false}
+              eventName="3d-toggle"
             >
               <span className={`text-base font-bold leading-none ${is3DMode ? 'text-primary' : 'text-gray-700 group-hover:text-primary'} transition-colors`}>3D</span>
             </MapControlButton>
