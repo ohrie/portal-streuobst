@@ -913,9 +913,15 @@ def main(dry_run: bool = False):
                 append_stats_csv(stats, csv_file)
                 logger.info(f"   ✅ Statistics appended to {csv_file}")
 
+                output_stats_json = config.OUTPUT_DIR / "stats.json"
+                export_stats_json(stats, output_stats_json)
+                logger.info(f"   ✅ stats.json exported to {output_stats_json}")
+
+                # Additionally write to web/public/ for local development
                 web_stats_json = config.BASE_DIR.parent / "web" / "public" / "stats.json"
-                export_stats_json(stats, web_stats_json)
-                logger.info(f"   ✅ stats.json exported to {web_stats_json}")
+                if web_stats_json.parent.exists():
+                    export_stats_json(stats, web_stats_json)
+                    logger.info(f"   ✅ stats.json exported to {web_stats_json}")
 
         
     except Exception as e:

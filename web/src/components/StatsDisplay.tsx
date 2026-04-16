@@ -78,12 +78,12 @@ export default function StatsDisplay() {
             </div>
           </div>
           <p className="text-lg font-semibold text-foreground">Hektar erfasst</p>
-          <p className="text-sm text-gray-600 mt-1">
-            Obstgärten-Gesamtfläche in OpenStreetMap
-            {date && <span className="block mt-0.5">Stand: {date}</span>}
-          </p>
+          <p className="text-sm text-gray-600 mt-1">Obstgärten-Gesamtfläche in OpenStreetMap</p>
         </div>
       </div>
+      {date && (
+        <p className="text-xs text-gray-400 text-right mt-2">Stand: {date}</p>
+      )}
     </div>
   );
 }

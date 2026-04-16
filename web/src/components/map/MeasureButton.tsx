@@ -26,7 +26,7 @@ export default function MeasureButton({ isMeasureMode, onToggle, isMobile }: Mea
         <MapControlButton
             isActive={isMeasureMode}
             onClick={handleClick}
-            title={isMeasureMode ? 'Messen beenden' : 'Flächen ausmessen'}
+            title={isMeasureMode ? 'Messen beenden' : 'Bäume zählen & Flächen ausmessen'}
             label="Messen"
             isMobile={isMobile}
         >

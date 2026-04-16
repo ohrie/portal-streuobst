@@ -11,9 +11,7 @@ Interactive map platform for traditional orchard meadows (Streuobstwiesen) in Ge
 - [Tree Detection](tree-detection/README.md): tree detection and API
 
 ### Website (`web/`)
-- **Stack**: Next.js 16, React 19, Tailwind CSS 4, Mapbox GL JS
 - **Build**: Static export (`output: 'export'`) - no server-side features
-- **Deployment**: Docker container with nginx, deployed via Traefik to `portal-streuobst.de`
 
 ## File Structure
 
@@ -79,28 +77,12 @@ tree-detection/
 
 ## Development
 
-```bash
-cd web
-npm install
-npm run dev          # Dev server at localhost:3000
-npm run build        # Static export to web/out
-```
-
 **Never use Turbopack** — always webpack: `next dev --webpack`
 
 **Critical files:**
 - `web/next.config.ts` — static export config
 - `web/src/app/layout.tsx` — root layout with fonts
 - `web/src/components/layouts/` — MinimalLayout / StandardLayout
-
-## Data Pipeline
-
-```bash
-cd data-processing
-./run_docker.sh      # Recommended: runs in Docker
-```
-
-**Steps:** Download Germany OSM (~4.5 GB) → extract orchards/meadows/trees with osmium → convert to GeoJSON with ogr2ogr → generate vector tiles with tippecanoe
 
 ## Tree Detection API
 
@@ -118,22 +100,45 @@ docker compose up tree-api --build
 - Results cached at `data/trees/{osm_id}_{date}.geojson`
 - Requires `data-processing/output/all_streuobstwiesen.geojson`
 
-## Docker & Deployment
+## Server Structure
 
-**Container Registry:** from `DOCKER_REGISTRY`
+The file tree on the server differs from the local file tree.
+There are two separate directories under `/srv/`:
 
-- Website: `${DOCKER_REGISTRY}/streuobstwiesen-karte`
-- Pipeline: `${DOCKER_REGISTRY}/streuobstwiesen-pipeline`
+```
+/srv/portal-streuobst/     # Web application stack
+├── docker-compose.yml     # Web + tileserver + tree-detection
+├── data/
+│   └── stats.json         # Copied from data pipeline, mounted into web container
+├── data-processing/
+│   └── output/
+│       └── all_streuobstwiesen.geojson
+├── tileserver/            # Tileserver config & data
+└── tree-detection/        # Tree detection data
 
-**GitHub Actions** (`.github/workflows/ci-cd.yml`):
-- `detect-changes` → `build-web` / `deploy-web` → `build-pipeline` / `deploy-pipeline`
+/srv/data-streuobst/       # Data pipeline (standalone)
+├── docker-compose.yml
+├── docker-compose.override.yml
+├── Dockerfile
+├── process_streuobstwiesen.py
+├── cluster_streuobstwiesen.py
+├── run_docker.sh
+├── setup.sh / setup_cron.sh
+├── data/                  # Raw downloaded OSM data
+├── output/                # Generated GeoJSON + MBTiles
+├── logs/
+└── temp/
+```
 
-**Required Secrets/Variables:**
-- `DOCKER_REGISTRY` (variable)
-- `DOCKER_REGISTRY_USERNAME` / `DOCKER_REGISTRY_PASSWORD`
-- `NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN`
-- `SSH_PASS`, `SSH_HOST`, `SSH_USER`
-- `WEB_DEPLOY_PATH`, `DEPLOY_PATH`
+### Data Update Cron Job
+
+Every 3 days at 02:30, the pipeline runs, copies the generated tiles, and updates stats.json for the web container:
+
+```
+30 2 */3 * * cd /srv/data-streuobst && docker compose up -d && cp /srv/data-streuobst/output/streuobstwiesen.mbtiles /srv/wiesen-tiles/data/ && cp /srv/data-streuobst/output/stats.json /srv/portal-streuobst/data/stats.json
+```
+
+`stats.json` is mounted read-only into the web container at `/usr/share/nginx/html/stats.json` via the volume defined in `docker-compose.yml`. On first server setup, create the directory: `mkdir -p /srv/portal-streuobst/data`
 
 ## Common Pitfalls
 
@@ -143,7 +148,3 @@ docker compose up tree-api --build
 - No missing `'use client'` on interactive components
 - No Turbopack
 
-## Git Workflow
-
-- **main** — production, auto-deploys on push
-- Feature branches for development

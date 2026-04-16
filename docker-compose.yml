@@ -3,6 +3,8 @@ services:
     image: ${DOCKER_REGISTRY}/streuobstwiesen-karte:latest
     container_name: portal-streuobst
     restart: unless-stopped
+    volumes:
+      - ./data/stats.json:/usr/share/nginx/html/stats.json:ro
     networks:
       - streuobst_network
     labels:
