@@ -45,7 +45,7 @@ export default function Header({ noShadow = false }: HeaderProps) {
                     <div className="flex lg:flex-1">
                         <Link href="/" className="flex items-center gap-3">
                             <img
-                                className="h-6 w-auto"
+                                className="h-10 w-auto"
                                 src="/wiese-logo.svg"
                                 alt="Streuobstwiesen Logo"
                             />

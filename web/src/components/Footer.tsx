@@ -26,7 +26,7 @@ export default function Footer() {
                             <img
                                 src="/wiese-logo.svg"
                                 alt="Streuobstwiesen Portal Logo"
-                                className="w-12 h-12"
+                                className="w-16 h-16"
                             />
                             <div>
                                 <h3 className="text-xl font-bold font-heading text-accent">
