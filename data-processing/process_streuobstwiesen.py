@@ -527,6 +527,7 @@ def export_stats_json(stats: dict, json_file: Path) -> bool:
         json_file.parent.mkdir(parents=True, exist_ok=True)
         with open(json_file, 'w') as f:
             json.dump(data, f, indent=2)
+        logger.info(f"✅ stats.json exported to {json_file}")
         return True
     except Exception as e:
         logger.error(f"❌ Failed to export stats.json: {e}")
