@@ -102,9 +102,17 @@ jobs:
             # Pull latest image
             docker pull $REGISTRY/$IMAGE_NAME:latest
             
+            # Ensure stats.json exists as a file
+            mkdir -p "$DEPLOY_PATH/data"
+            if [ -f "/srv/data-streuobst/output/stats.json" ]; then
+              cp /srv/data-streuobst/output/stats.json "$DEPLOY_PATH/data/stats.json"
+            elif [ ! -f "$DEPLOY_PATH/data/stats.json" ]; then
+              echo '{}' > "$DEPLOY_PATH/data/stats.json"
+            fi
+
             # Stop and remove old container
             docker compose down || true
-            
+
             # Start new container
             docker compose up -d
             
