@@ -32,23 +32,15 @@ Interaktive Karte zur Visualisierung und Entdeckung von Streuobstwiesen in Deuts
     └── ci-cd.yml          # Unified CI/CD pipeline
 ```
 
-## Technologie-Stack
+## Ähnliche Projekte
 
-**Frontend:**
-- Next.js 16 (Static Export)
-- React 19
-- Mapbox GL JS
-- Tailwind CSS 4
+Im deutschsprachigen Raum und darüber hinaus gibt es weitere Initiativen zur Kartierung von Obstbäumen und Streuobstwiesen:
 
-**Backend/Data:**
-- Python 3 (OSM-Datenverarbeitung)
-- nginx (Statischer Webserver)
-- Docker & Docker Compose
-
-**Deployment:**
-- Traefik (Reverse Proxy)
-- GitHub Actions (CI/CD)
-- Private Container Registry (via `DOCKER_REGISTRY`)
+- **[OpenBomenKaart](https://www.openbomenkaart.org/index_int.html?lang=de)** — Offene Baumkarte aus den Niederlanden und Belgien, die Einzelbäume auf Basis offener Daten visualisiert.
+- **[obstbaumkarte.de](https://obstbaumkarte.de)** — Spezialisierte Karte auf Obstbäume in Kleingärten auf Basis von OpenStreetMap-Daten, unter anderem vorgestellt auf der [FOSSGIS 2022](https://kartdok.staatsbibliothek-berlin.de/servlets/MCRFileNodeServlet/kartdok_derivate_00000843/fossgis2022_092_Rudzick_Schweizerhose-im-Schrebergarten_Mapping-von-Obstbaeumen-in-OpenStreetMap_Praesentation.pdf).
+- **[Naschbaumkarte OGV Gerbrunn](https://r4f.github.io/StreuobstGerbrunn/)** — Obstbaumkarte des Obst- und Gartenbauvereins Gerbrunn, die OSM-Daten via Overpass API abruft und Obstsorten farblich kennzeichnet ([Quellcode](https://github.com/r4f/StreuobstGerbrunn)).
+- **[Streuobstwiesen-Kataster Niedersachsen](https://streuobstwiesen-buendnis-niedersachsen.de/web/start/suche)** — Erfassungsportal des Streuobstwiesen-Bündnis Niedersachsen e.V. zur Suche und Eintragung von Streuobstwiesen und Veranstaltungen in Niedersachsen.
+- **[Streuobst-Kataster (Äpfel & Konsorten e.V.)](https://admin.streuobst-kataster.de/maps?loc=brandenburg)** — Interaktives Kataster von Streuobstwiesen u.a. in Brandenburg, betrieben vom Verein Äpfel & Konsorten e.V.
 
 ## Entwicklung
 
@@ -114,6 +106,8 @@ docker-compose logs -f
 # Stoppen
 docker-compose down
 ```
+
+
 
 # Unterstützung
 
