@@ -5,6 +5,51 @@ import { ChevronDown, ChevronUp, TreePine, Users, Euro, FileText, Wrench, Heart 
 import Section from '@/components/Section';
 import Button from '@/components/Button';
 
+interface BundesweiteResource {
+    title: string;
+    link: string;
+    description?: string;
+    article?: 'Zur' | 'Zum';
+}
+
+const bundesweiteResources: BundesweiteResource[] = [
+    {
+        title: 'Hochstamm Deutschland e.V.',
+        link: 'https://www.hochstamm-deutschland.de/',
+        article: 'Zum',
+        description:
+            'Bundesweit tätiger Verein für den Erhalt von Streuobstwiesen. Bietet Fachinformationen, Netzwerke, Kampagnen und setzt sich für den Schutz der Streuobstkultur als Immaterielles Kulturerbe ein.'
+    },
+    {
+        title: 'Pomologen-Verein e.V.',
+        link: 'https://www.pomologen-verein.de/',
+        article: 'Zum',
+        description:
+            'Verein zur Förderung der Obstsortenkunde und Erhaltung alter Sorten. Aktiv in Sortenbestimmung, Beratung, Pflege von Obstgehölzen und Bildung. Starker Bezug zum Thema Streuobst durch Sortenvielfalt und Landschaftspflege.'
+    },
+    {
+        title: 'NABU Bundesfachausschuss Streuobst',
+        link: 'https://www.nabu.de/natur-und-landschaft/landnutzung/streuobst/',
+        article: 'Zum',
+        description:
+            'Der NABU bündelt bundesweite Infos zu Streuobstwiesen: Schutz, Nutzung, Sortenerhalt, Förderungen und Mitmachmöglichkeiten. Schwerpunkt ist die ökologische und kulturelle Bedeutung von Streuobst.'
+    },
+    {
+        title: 'Kleinmoster-Plattform',
+        link: 'https://www.kleinmoster.de/',
+        article: 'Zur',
+        description:
+            'Gibt eine Übersicht über Kleinmostereien in ganz Deutschland.'
+    },
+    {
+        title: 'Fairpachten-Initiative',
+        link: 'https://www.fairpachten.org/',
+        article: 'Zur',
+        description:
+            'Initiative, die bundesweit Beratung für ökologische, faire Verpachtung von landwirtschaftlichen Flächen bietet. Streuobstwiesen sind ein Kernthema, da durch Verträge naturnahe Nutzung und Erhalt gefördert werden.'
+    }
+];
+
 interface AccordionItem {
     id: string;
     title: string;
@@ -231,6 +276,33 @@ export default function BewirtschaftungPage() {
                     </div>
                 </Section>
 
+                {/* Bundesweite Ressourcen */}
+                <Section className="py-12">
+                    <div className="max-w-4xl mx-auto">
+                        <div className="bg-light rounded-lg p-6 text-left">
+                            <h2 className="text-xl font-semibold text-foreground mb-3">Bundesweite Ressourcen</h2>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {bundesweiteResources.map((res, idx) => (
+                                    <div key={idx} className="bg-white rounded-md p-4 border border-gray-200 flex flex-col justify-between h-full">
+                                        <div>
+                                            <a href={res.link} target="_blank" rel="noopener noreferrer" className="text-sm font-semibold text-[var(--color-foreground)] hover:underline">
+                                                {res.title}
+                                            </a>
+                                            {res.description && (
+                                                <p className="text-gray-700 mt-2 text-sm">{res.description}</p>
+                                            )}
+                                        </div>
+                                        <div className="mt-4">
+                                            <Button href={res.link} variant="outline" size="sm" external className="w-full">
+                                                {`${res.article ?? 'Zur'} ${res.title}`}
+                                            </Button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </Section>
 
             </main>
         </div>
