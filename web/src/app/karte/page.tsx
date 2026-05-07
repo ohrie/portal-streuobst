@@ -13,6 +13,7 @@ import SatelliteToggleButton from '@/components/map/SatelliteToggleButton';
 import ProtectedAreasButton from '@/components/map/ProtectedAreasButton';
 import HistoricalAerialsButton, { HISTORICAL_AERIAL_LAYERS } from '@/components/map/HistoricalAerialsButton';
 import MeasureButton from '@/components/map/MeasureButton';
+import EditButton from '@/components/map/EditButton';
 import MapControlButton from '@/components/map/MapControlButton';
 import MeasurePanel from '@/components/map/MeasurePanel';
 import { createOSMPopupHTML } from '@/components/map/OSMPopup';
@@ -1460,6 +1461,7 @@ export default function MapPage() {
               onToggle={toggleMeasureMode}
               isMobile={false}
             />
+            <EditButton map={map} onOpenIdEditor={openOSMEditor} />
             {isLayerLoading && (
               <div className="flex items-center justify-center self-center w-8 h-8">
                 <div className="w-5 h-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
