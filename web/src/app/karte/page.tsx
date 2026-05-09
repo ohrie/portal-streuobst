@@ -519,6 +519,52 @@ export default function MapPage() {
         }
       });
 
+      // Tree species label (zoom 19+): species:de → species → genus:de → genus
+      map.current?.addLayer({
+        id: 'baeume-label-species',
+        type: 'symbol',
+        source: 'streuobstwiesen',
+        'source-layer': 'baeume',
+        minzoom: 18,
+        layout: {
+          'text-field': ['coalesce', ['get', 'species:de'], ['get', 'species'], ['get', 'genus:de'], ['get', 'genus']],
+          'text-font': ['Open Sans Regular', 'Arial Unicode MS Regular'],
+          'text-size': 13,
+          'text-anchor': 'top',
+          'text-offset': [0, 1.8],
+          'text-allow-overlap': false,
+          'text-ignore-placement': false,
+        },
+        paint: {
+          'text-color': '#166534',
+          'text-halo-color': 'rgba(255, 255, 255, 0.9)',
+          'text-halo-width': 1.5,
+        }
+      });
+
+      // Tree taxon/cultivar label (zoom 21+, italic): taxon:de → taxon → taxon:cultivar:de → taxon:cultivar
+      map.current?.addLayer({
+        id: 'baeume-label-taxon',
+        type: 'symbol',
+        source: 'streuobstwiesen',
+        'source-layer': 'baeume',
+        minzoom: 19,
+        layout: {
+          'text-field': ['coalesce', ['get', 'taxon:de'], ['get', 'taxon'], ['get', 'taxon:cultivar:de'], ['get', 'taxon:cultivar']],
+          'text-font': ['Open Sans Italic', 'Arial Unicode MS Regular'],
+          'text-size': 13,
+          'text-anchor': 'top',
+          'text-offset': [0, 3.2],
+          'text-allow-overlap': true,
+          'text-ignore-placement': true,
+        },
+        paint: {
+          'text-color': '#166534',
+          'text-halo-color': 'rgba(255, 255, 255, 0.9)',
+          'text-halo-width': 1.5,
+        }
+      });
+
       // Add partner orchards data
       map.current?.addSource('partner-orchards', {
         type: 'geojson',
