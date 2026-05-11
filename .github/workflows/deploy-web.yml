@@ -110,6 +110,9 @@ jobs:
               echo '{}' > "$DEPLOY_PATH/data/stats.json"
             fi
 
+            # Pull all images defined in docker-compose.yml (includes tree-api)
+            docker compose pull
+
             # Stop and remove old container
             docker compose down || true
 
