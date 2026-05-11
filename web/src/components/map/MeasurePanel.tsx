@@ -17,6 +17,11 @@ export default function MeasurePanel({ features, onClear, isTreeDetectEnabled, o
     const panelContentId = 'measure-panel-content';
 
     const totalM2 = features.reduce((sum, f) => sum + f.areaM2, 0);
+
+    // BW: lon < 10.5°; BY: lon >= 10.5° (grobe Trennung anhand der BW-Ostgrenze)
+    const hasBwFeatures = features.some(f => f.center[0] < 10.5);
+    const hasByFeatures = features.some(f => f.center[0] >= 10.5);
+
     const countsKnown = features.some(f => f.treeCount != null);
     const totalTrees = countsKnown
         ? features.reduce((sum, f) => sum + (f.treeCount ?? 0), 0)
@@ -135,7 +140,7 @@ export default function MeasurePanel({ features, onClear, isTreeDetectEnabled, o
                             <div className="absolute bottom-full right-0 mb-2 w-60 bg-gray-900 text-white text-xs rounded-lg p-2.5 shadow-xl opacity-0 group-hover/info:opacity-100 transition-opacity pointer-events-none z-50 leading-relaxed">
                                 Automatische Ermittlung auf Basis des amtlichen DGM und DOM (Canopy Height Model, CHM). Die Berechnung ist fehlerbehaftet – insbesondere kleinere Bäume werden nicht zuverlässig erkannt.
                                 <br /><br />
-                                <span className="font-medium">Derzeit nur in Baden-Württemberg verfügbar.</span>
+                                <span className="font-medium">Derzeit nur in Baden-Württemberg + Bayern verfügbar.</span>
                                 <div className="absolute top-full right-2 border-4 border-transparent border-t-gray-900" />
                             </div>
                         </div>
@@ -156,23 +161,43 @@ export default function MeasurePanel({ features, onClear, isTreeDetectEnabled, o
                 </div>
                 {isTreeDetectEnabled && (
                     <p className="mt-2 text-xs text-gray-500 leading-relaxed">
-                        Daten berechnet aus Geobasisdaten des <a
-                            href="https://www.lgl-bw.de/Produkte/Open-Data/"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="underline hover:text-gray-700"
-                        >
-                            LGL, www.lgl-bw.de
-                        </a>
-                        <br />Lizenz: {' '}
-                        <a
-                            href="http://www.govdata.de/dl-de/by-2-0"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="underline hover:text-gray-700"
-                        >
-                            Datenlizenz Deutschland – Namensnennung – Version 2.0
-                        </a>{' '}
+                        Baumermittlung aus Geobasisdaten:{' '}
+                        {hasBwFeatures && (
+                            <>
+                                <a
+                                    href="https://www.lgl-bw.de/Produkte/Open-Data/"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="underline hover:text-gray-700"
+                                >
+                                    LGL-BW
+                                </a>
+                                {' '}(dl-de/by-2-0)
+                            </>
+                        )}
+                        {hasBwFeatures && hasByFeatures && <span>; </span>}
+                        {hasByFeatures && (
+                            <>
+                                <a
+                                    href="https://geodaten.bayern.de/opengeodata/OpenDataDetail.html?pn=dgm1"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="underline hover:text-gray-700"
+                                >
+                                    DGM1
+                                </a>
+                                {' '}und{' '}
+                                <a
+                                    href="https://geodaten.bayern.de/opengeodata/OpenDataDetail.html?pn=dom20"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="underline hover:text-gray-700"
+                                >
+                                    DOM20
+                                </a>
+                                {' '}© Bayerische Vermessungsverwaltung (CC BY 4.0)
+                            </>
+                        )}
                     </p>
                 )}
             </div>

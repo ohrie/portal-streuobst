@@ -662,7 +662,7 @@ export default function MapPage() {
       map.current?.addSource('detected-trees', {
         type: 'geojson',
         data: { type: 'FeatureCollection', features: [] },
-        attribution: '<a href="https://www.lgl-bw.de/Produkte/Open-Data/" target="_blank">LGL, www.lgl-bw.de</a>, dl-de/by-2-0',
+        attribution: '<a href="https://www.lgl-bw.de/Produkte/Open-Data/" target="_blank">LGL, www.lgl-bw.de</a>, dl-de/by-2-0 | © <a href="https://geodaten.bayern.de/opengeodata" target="_blank">Bayerische Vermessungsverwaltung</a>',
       });
       map.current?.addLayer({
         id: 'detected-trees-circle',

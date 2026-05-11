@@ -28,6 +28,9 @@ def _get_file_lock(name: str) -> threading.Lock:
 _TILE_TIF_RE = re.compile(r"(?:dom1|dgm1)_32_(\d+)_(\d+)_1_bw_\d{4}\.tif$", re.IGNORECASE)
 _TILE_XYZ_RE = re.compile(r"(?:dom1|dgm1)_32_(\d+)_(\d+)_1_bw_\d{4}\.xyz$", re.IGNORECASE)
 
+# Regex für BayernWolke-Kacheln (dom1_by_{e_km}_{n_km}.tif / dgm1_by_{e_km}_{n_km}.tif)
+_TILE_TIF_BY_RE = re.compile(r"(?:dom1|dgm1)_by_(\d+)_(\d+)\.tif$", re.IGNORECASE)
+
 
 def _xyz_to_tif(xyz_path: Path) -> Path:
     """
@@ -116,12 +119,13 @@ def find_tiles(data_dir: Path, min_e: float, min_n: float, max_e: float, max_n: 
     """
     Sucht alle GeoTIFF-Kacheln im Verzeichnis (rekursiv), die mit der bbox überlappen.
     XYZ-Dateien in ZIPs werden bei Bedarf automatisch konvertiert.
+    Erkennt sowohl LGL-BW- als auch BayernWolke-Kacheln.
     """
     _ensure_tifs_from_zips(data_dir)
 
     results = []
     for tif in sorted(data_dir.rglob("*.tif")):
-        m = _TILE_TIF_RE.search(tif.name)
+        m = _TILE_TIF_RE.search(tif.name) or _TILE_TIF_BY_RE.search(tif.name)
         if not m:
             continue
         tile_e = int(m.group(1)) * 1000

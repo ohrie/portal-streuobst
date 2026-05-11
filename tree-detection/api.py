@@ -16,7 +16,7 @@ from fastapi import Path as APIPath
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 
-from core.coords import bbox_wgs84_to_utm, BW_LON_MIN, BW_LON_MAX, BW_LAT_MIN, BW_LAT_MAX
+from core.coords import bbox_wgs84_to_utm, point_state
 from core.tiles import find_tiles, load_mosaic
 from core.detection import detect_blobs, blobs_to_points, deduplicate
 from core.polygons import rasterize_polygons, filter_in_polygons
@@ -175,15 +175,18 @@ async def get_trees(osm_id: str = APIPath(..., pattern=r'^[nwa]\d+$')):
     if polygon is None:
         raise HTTPException(status_code=404, detail=f"OSM-ID {osm_id} nicht gefunden")
 
-    # 3. BW-Bounds-Check (LGL-BW liefert nur Daten für Baden-Württemberg)
+    # 3. Bounds-Check (nur BW und Bayern werden unterstützt)
     min_lon, min_lat, max_lon, max_lat = polygon.bounds
-    if not (BW_LON_MIN <= min_lon <= BW_LON_MAX and BW_LON_MIN <= max_lon <= BW_LON_MAX
-            and BW_LAT_MIN <= min_lat <= BW_LAT_MAX and BW_LAT_MIN <= max_lat <= BW_LAT_MAX):
+    center_lon = (min_lon + max_lon) / 2
+    center_lat = (min_lat + max_lat) / 2
+    if point_state(center_lon, center_lat) is None:
         raise HTTPException(
             status_code=422,
-            detail=f"Diese Fläche liegt außerhalb Baden-Württembergs "
-                   f"(bounds: {min_lon:.4f},{min_lat:.4f},{max_lon:.4f},{max_lat:.4f}). "
-                   f"LGL-BW Höhendaten sind nur für BW verfügbar."
+            detail=(
+                f"Diese Fläche liegt außerhalb Baden-Württembergs und Bayerns "
+                f"(bounds: {min_lon:.4f},{min_lat:.4f},{max_lon:.4f},{max_lat:.4f}). "
+                f"Höhendaten sind nur für Baden-Württemberg und Bayern verfügbar."
+            ),
         )
 
     # 4. Pipeline in Thread-Pool ausführen (CPU-intensiv), max. 180 Sekunden
