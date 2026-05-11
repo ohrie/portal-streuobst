@@ -21,6 +21,7 @@ web/out/
 
 # generated data files (created by data-processing pipeline)
 web/public/stats.json
+data/*
 
 # production
 web/build
