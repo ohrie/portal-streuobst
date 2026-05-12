@@ -45,6 +45,8 @@ echo -e "${GREEN}✅ Docker image built successfully${NC}" | tee -a "$LOG_FILE"
 # Run the processing in Docker
 echo -e "${YELLOW}▶️  Running data processing...${NC}" | tee -a "$LOG_FILE"
 
+docker rm -f streuobstwiesen-processing 2>/dev/null || true
+
 docker run --rm \
     --name streuobstwiesen-processing \
     -v "${SCRIPT_DIR}/data:/app/data" \
@@ -69,10 +71,10 @@ if [ ${PIPESTATUS[0]} -eq 0 ]; then
 
     if [ ${PIPESTATUS[0]} -eq 0 ]; then
         echo -e "${GREEN}✅ Bundesland statistics completed${NC}" | tee -a "$LOG_FILE"
-        DATA_DIR="$(dirname "$SCRIPT_DIR")/data"
-        mkdir -p "$DATA_DIR"
-        cp "${SCRIPT_DIR}/output/stats_laender.json" "$DATA_DIR/stats_laender.json"
-        echo -e "${GREEN}✅ stats_laender.json deployed to $DATA_DIR${NC}" | tee -a "$LOG_FILE"
+        PORTAL_DATA_DIR="/srv/portal-streuobst/data"
+        mkdir -p "$PORTAL_DATA_DIR"
+        cp "${SCRIPT_DIR}/output/stats_laender.json" "$PORTAL_DATA_DIR/stats_laender.json"
+        echo -e "${GREEN}✅ stats_laender.json deployed to $PORTAL_DATA_DIR${NC}" | tee -a "$LOG_FILE"
     else
         echo -e "${RED}❌ Bundesland statistics failed!${NC}" | tee -a "$LOG_FILE"
     fi
