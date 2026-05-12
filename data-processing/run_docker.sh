@@ -58,26 +58,44 @@ docker run --rm \
 # Check exit status
 if [ ${PIPESTATUS[0]} -eq 0 ]; then
     echo -e "${GREEN}✅ Processing completed successfully!${NC}" | tee -a "$LOG_FILE"
-    
+
+    # Run Bundesland statistics
+    echo -e "${YELLOW}▶️  Running Bundesland statistics...${NC}" | tee -a "$LOG_FILE"
+    docker run --rm \
+        --name streuobstwiesen-laender-stats \
+        -v "${SCRIPT_DIR}/output:/app/output" \
+        "$IMAGE_NAME" \
+        python3 process_laender_stats.py 2>&1 | tee -a "$LOG_FILE"
+
+    if [ ${PIPESTATUS[0]} -eq 0 ]; then
+        echo -e "${GREEN}✅ Bundesland statistics completed${NC}" | tee -a "$LOG_FILE"
+        DATA_DIR="$(dirname "$SCRIPT_DIR")/data"
+        mkdir -p "$DATA_DIR"
+        cp "${SCRIPT_DIR}/output/stats_laender.json" "$DATA_DIR/stats_laender.json"
+        echo -e "${GREEN}✅ stats_laender.json deployed to $DATA_DIR${NC}" | tee -a "$LOG_FILE"
+    else
+        echo -e "${RED}❌ Bundesland statistics failed!${NC}" | tee -a "$LOG_FILE"
+    fi
+
     # Copy tiles if needed
     if [ -f "${SCRIPT_DIR}/output/streuobstwiesen.mbtiles" ]; then
         # Uncomment and configure your deployment method:
-        
+
         # Option 1: Copy to web server directory
         # cp "${SCRIPT_DIR}/output/streuobstwiesen.mbtiles" /var/www/tiles/
-        
+
         # Option 2: Upload via rsync
         # rsync -avz "${SCRIPT_DIR}/output/streuobstwiesen.mbtiles" user@server:/var/www/tiles/
-        
+
         # Option 3: Upload to cloud storage with rclone
         # rclone sync "${SCRIPT_DIR}/output/streuobstwiesen.mbtiles" r2:tiles/
-        
+
         echo -e "${GREEN}✅ Tiles ready for deployment${NC}"
     fi
-    
+
     # Cleanup old logs (keep last 30 days)
     find "$LOG_DIR" -name "processing_*.log" -mtime +30 -delete 2>/dev/null || true
-    
+
     exit 0
 else
     echo -e "${RED}❌ Processing failed!${NC}" | tee -a "$LOG_FILE"

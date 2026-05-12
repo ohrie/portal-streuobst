@@ -5,6 +5,7 @@ services:
     restart: unless-stopped
     volumes:
       - ./data/stats.json:/usr/share/nginx/html/stats.json:ro
+      - ./data/stats_laender.json:/usr/share/nginx/html/stats_laender.json:ro
     networks:
       - streuobst_network
     labels:

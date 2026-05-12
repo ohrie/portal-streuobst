@@ -5,6 +5,7 @@
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROCESS_SCRIPT="$SCRIPT_DIR/process_streuobstwiesen.py"
+LAENDER_STATS_SCRIPT="$SCRIPT_DIR/process_laender_stats.py"
 VENV_DIR="$SCRIPT_DIR/venv"
 LOG_FILE="$SCRIPT_DIR/cron.log"
 
@@ -28,6 +29,14 @@ EXIT_CODE=\$?
 
 if [ \$EXIT_CODE -eq 0 ]; then
     echo "\$(date): Processing completed successfully" >> "$LOG_FILE"
+    echo "\$(date): Starting Bundesland statistics" >> "$LOG_FILE"
+    python "$LAENDER_STATS_SCRIPT" >> "$LOG_FILE" 2>&1
+    LAENDER_EXIT=\$?
+    if [ \$LAENDER_EXIT -eq 0 ]; then
+        echo "\$(date): Bundesland statistics completed successfully" >> "$LOG_FILE"
+    else
+        echo "\$(date): Bundesland statistics failed with exit code \$LAENDER_EXIT" >> "$LOG_FILE"
+    fi
 else
     echo "\$(date): Processing failed with exit code \$EXIT_CODE" >> "$LOG_FILE"
 fi

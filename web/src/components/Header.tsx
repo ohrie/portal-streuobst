@@ -26,6 +26,10 @@ const navigation: NavigationItem[] = [
         name: 'Über Wiesen',
         href: '/about/'
     },
+    {
+        name: 'Statistiken',
+        href: '/statistiken/'
+    },
 ];
 
 interface HeaderProps {
