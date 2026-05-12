@@ -173,7 +173,7 @@ export default function StatistikenPage() {
                         Obstwiesen<br />je Bundesland
                     </h1>
                     <p className="text-lg text-gray-600 max-w-2xl">
-                        Wie viele Streuobstwiesen sind in OpenStreetMap erfasst – und wie viel Fläche
+                        Wie viele Obstwiesen sind in OpenStreetMap erfasst – und wie viel Fläche
                         nehmen sie je Bundesland ein?
                     </p>
                     {stats.generated && (

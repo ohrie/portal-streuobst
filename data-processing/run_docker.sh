@@ -73,8 +73,13 @@ if [ ${PIPESTATUS[0]} -eq 0 ]; then
         echo -e "${GREEN}✅ Bundesland statistics completed${NC}" | tee -a "$LOG_FILE"
         PORTAL_DATA_DIR="/srv/portal-streuobst/data"
         mkdir -p "$PORTAL_DATA_DIR"
+        # Docker creates a directory at the bind-mount path if the file didn't exist at compose-up time
+        [ -d "$PORTAL_DATA_DIR/stats_laender.json" ] && rm -rf "$PORTAL_DATA_DIR/stats_laender.json"
         cp "${SCRIPT_DIR}/output/stats_laender.json" "$PORTAL_DATA_DIR/stats_laender.json"
         echo -e "${GREEN}✅ stats_laender.json deployed to $PORTAL_DATA_DIR${NC}" | tee -a "$LOG_FILE"
+        [ -d "$PORTAL_DATA_DIR/stats.json" ] && rm -rf "$PORTAL_DATA_DIR/stats.json"
+        cp "${SCRIPT_DIR}/output/stats.json" "$PORTAL_DATA_DIR/stats.json"
+        echo -e "${GREEN}✅ stats.json deployed to $PORTAL_DATA_DIR${NC}" | tee -a "$LOG_FILE"
     else
         echo -e "${RED}❌ Bundesland statistics failed!${NC}" | tee -a "$LOG_FILE"
     fi
