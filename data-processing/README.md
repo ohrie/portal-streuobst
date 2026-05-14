@@ -40,3 +40,14 @@ python process_streuobstwiesen.py
 ```
 
 Für einen automatischen Lauf kann `setup_cron.sh` verwendet werden.
+
+## DZT Knowledge Graph – Routen herunterladen
+
+`download_streuobst_routes.py` lädt Wander- und Radwege via SPARQL aus dem DZT Knowledge Graph und speichert sie als GeoJSON in `output/`. Voraussetzung: `DZT_API_KEY` in `.env`.
+
+```bash
+source venv/bin/activate
+python download_streuobst_routes.py [--search TEXT] [--search-field name|description|keywords|publisher] [--test]
+```
+
+`--test` lädt nur 5 Treffer. Ausgabe: `{suchbegriff}_routes.geojson` und `{suchbegriff}_routes_no_geometry.geojson`.

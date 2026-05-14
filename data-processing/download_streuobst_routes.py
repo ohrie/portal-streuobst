@@ -34,8 +34,7 @@ if not API_KEY:
     sys.exit(1)
 
 SPARQL_URL = "https://proxy.opendatagermany.io/api/ts/v1/kg/sparql"
-OUTPUT_FILE = Path(__file__).parent / "output" / "streuobst_routes.geojson"
-OUTPUT_FILE_NO_GEO = Path(__file__).parent / "output" / "streuobst_routes_no_geometry.geojson"
+OUTPUT_DIR = Path(__file__).parent / "output"
 
 HEADERS = {
     "X-API-KEY": API_KEY,
@@ -43,7 +42,22 @@ HEADERS = {
 }
 
 TRAIL_TYPE_KEYWORDS = {"CyclingTrail", "HikingTrail", "WalkingTrail", "MountainBikingTrail"}
+
+TRAIL_TYPE_URIS = [
+    "https://odta.io/voc/Trail",
+    "https://odta.io/voc/CyclingTrail",
+    "https://odta.io/voc/HikingTrail",
+    "https://odta.io/voc/WalkingTrail",
+    "https://odta.io/voc/MountainBikingTrail",
+]
 LICENSE_PREFIXES = ("CC BY", "CC0", "PDM")
+
+# Trails that are always included regardless of search parameters.
+EXTRA_TRAIL_IDS = [
+    # Traufblick-Tour: Am Albtrauf entlang rund um Mössingen
+    "https://mein.toubiz.de/api/v1/article/1b6966d3-4473-4bba-960b-d16ccaf27d69",
+    "https://mein.toubiz.de/api/v1/article/f23fce60-916c-4941-b1ea-90b7416f59e5",
+]
 
 # Weitere verfügbare Properties im DZT Knowledge Graph (aktuell nicht genutzt):
 #   http://onlim.com/meta/dateModified         – letztes Änderungsdatum des Datensatzes
@@ -57,6 +71,12 @@ LICENSE_PREFIXES = ("CC BY", "CC0", "PDM")
 #   https://schema.org/image → schema:thumbnailUrl  – Thumbnail-URL des Bildes (kleinere Vorschau)
 #   https://schema.org/image → schema:copyrightNotice – Urheberrechtshinweis des Bildes (z.B. "CC BY-SA 4.0 Max Mustermann")
 #   https://vocab.sti2.at/ds/compliesWith      – URI des verwendeten Datenschemas (ODTA Domain Spec)
+#
+# Bereits extrahierte Properties (in fetch_trail_details):
+#   https://odta.io/voc/length → schema:value / schema:unitCode – Streckenlänge (QuantitativeValue)
+#   https://odta.io/voc/uphillElevation → schema:value / schema:unitCode – Aufstieg (QuantitativeValue)
+#   https://odta.io/voc/downhillElevation → schema:value / schema:unitCode – Abstieg (QuantitativeValue)
+#   https://odta.io/voc/estimatedDuration      – geschätzte Dauer (Duration)
 
 
 def sparql(query: str) -> list[dict]:
@@ -65,15 +85,41 @@ def sparql(query: str) -> list[dict]:
     return resp.json()["results"]["bindings"]
 
 
-def fetch_trail_ids() -> list[str]:
-    """Get IDs of all trails with 'streuobst' in their name."""
-    rows = sparql("""
-        SELECT DISTINCT ?trail WHERE {
-            ?trail a <https://odta.io/voc/Trail> .
-            ?trail <https://schema.org/name> ?name .
-            FILTER(CONTAINS(LCASE(STR(?name)), "streuobst"))
-        }
-    """)
+SEARCH_FIELD_URIS = {
+    "name": "https://schema.org/name",
+    "description": "https://schema.org/description",
+    "keywords": "https://schema.org/keywords",
+}
+
+
+def fetch_trail_ids(search: str, field: str = "name") -> list[str]:
+    """Get IDs of all trails where `field` contains `search` (case-insensitive).
+
+    field: one of 'name', 'description', 'keywords', 'publisher'
+    """
+    s = search.lower()
+    type_values = " ".join(f"<{u}>" for u in TRAIL_TYPE_URIS)
+    if field == "publisher":
+        # sdPublisher is a linked entity — join through its schema:name
+        rows = sparql(f"""
+            SELECT DISTINCT ?trail WHERE {{
+                VALUES ?type {{ {type_values} }}
+                ?trail a ?type .
+                ?trail <https://schema.org/sdPublisher> ?pub .
+                ?pub <https://schema.org/name> ?pubName .
+                FILTER(CONTAINS(LCASE(STR(?pubName)), "{s}"))
+            }}
+        """)
+    else:
+        uri = SEARCH_FIELD_URIS[field]
+        rows = sparql(f"""
+            SELECT DISTINCT ?trail WHERE {{
+                VALUES ?type {{ {type_values} }}
+                ?trail a ?type .
+                ?trail <{uri}> ?value .
+                FILTER(CONTAINS(LCASE(STR(?value)), "{s}"))
+            }}
+        """)
     return [r["trail"]["value"] for r in rows]
 
 
@@ -82,7 +128,8 @@ def fetch_trail_details(trail_id: str) -> dict:
     rows = sparql(f"""
         PREFIX schema: <https://schema.org/>
         PREFIX odta: <https://odta.io/voc/>
-        SELECT ?name ?description ?url ?circular ?geo ?sdLicense ?sdPublisher WHERE {{
+        SELECT ?name ?description ?url ?circular ?geo ?sdLicense ?sdPublisher
+               ?length_value ?length_unit ?uphill_value ?uphill_unit ?downhill_value ?downhill_unit ?duration WHERE {{
             <{trail_id}> schema:name ?name .
             OPTIONAL {{ <{trail_id}> schema:description ?description }}
             OPTIONAL {{ <{trail_id}> schema:url ?url }}
@@ -90,6 +137,25 @@ def fetch_trail_details(trail_id: str) -> dict:
             OPTIONAL {{ <{trail_id}> schema:geo ?geo }}
             OPTIONAL {{ <{trail_id}> schema:sdLicense ?sdLicense }}
             OPTIONAL {{ <{trail_id}> schema:sdPublisher ?sdPublisher }}
+            OPTIONAL {{
+                <{trail_id}> odta:length ?lengthNode .
+                ?lengthNode schema:value ?length_value .
+                OPTIONAL {{ ?lengthNode schema:unitCode ?length_unit }}
+            }}
+            OPTIONAL {{
+                <{trail_id}> odta:uphillElevation ?uphillNode .
+                ?uphillNode schema:value ?uphill_value .
+                OPTIONAL {{ ?uphillNode schema:unitCode ?uphill_unit }}
+            }}
+            OPTIONAL {{
+                <{trail_id}> odta:downhillElevation ?downhillNode .
+                ?downhillNode schema:value ?downhill_value .
+                OPTIONAL {{ ?downhillNode schema:unitCode ?downhill_unit }}
+            }}
+            OPTIONAL {{
+                <{trail_id}> odta:estimatedDuration ?durNode .
+                ?durNode schema:name ?duration
+            }}
             FILTER(LANG(?name) = "de" || LANG(?name) = "")
         }}
         LIMIT 1
@@ -179,13 +245,37 @@ def val(binding: dict, key: str) -> str | None:
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--test", action="store_true", help="Nur 5 Trails laden (zum Testen)")
+    parser.add_argument("--search", default="streuobst", help="Suchbegriff (Standard: streuobst)")
+    parser.add_argument(
+        "--search-field",
+        default="name",
+        choices=[*SEARCH_FIELD_URIS, "publisher"],
+        help="Feld, in dem gesucht wird: name (Standard), description, keywords, publisher",
+    )
+    parser.add_argument(
+        "--ids",
+        nargs="+",
+        metavar="ID",
+        default=[],
+        help="Zusätzliche Trail-IDs (URIs), die unabhängig vom Suchbegriff eingeschlossen werden",
+    )
     args = parser.parse_args()
 
-    OUTPUT_FILE.parent.mkdir(parents=True, exist_ok=True)
+    slug = args.search.lower().replace(" ", "_")
+    output_file = OUTPUT_DIR / f"{slug}_routes.geojson"
+    output_file_no_geo = OUTPUT_DIR / f"{slug}_routes_no_geometry.geojson"
 
-    print("Fetching Streuobst trail IDs via SPARQL...")
-    trail_ids = fetch_trail_ids()
-    print(f"Found {len(trail_ids)} trails.\n")
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+
+    print(f"Fetching trails where {args.search_field} contains '{args.search}' via SPARQL...")
+    trail_ids = fetch_trail_ids(args.search, args.search_field)
+    print(f"Found {len(trail_ids)} trails.")
+
+    extra_ids = [tid for tid in EXTRA_TRAIL_IDS + args.ids if tid not in trail_ids]
+    if extra_ids:
+        print(f"Adding {len(extra_ids)} extra ID(s) (hardcoded + --ids).")
+    trail_ids = trail_ids + extra_ids
+    print()
 
     if args.test:
         trail_ids = trail_ids[:5]
@@ -228,6 +318,24 @@ def main():
                 time.sleep(0.1)
 
             name = val(details, "name")
+
+            def quantitative_to_meters(value_key: str, unit_key: str) -> float | None:
+                v = val(details, value_key)
+                if v is None:
+                    return None
+                try:
+                    num = float(v)
+                    unit = (val(details, unit_key) or "").upper()
+                    if unit == "KMT":
+                        num = num * 1000
+                    return num
+                except ValueError:
+                    return None
+
+            length_m = quantitative_to_meters("length_value", "length_unit")
+            uphill_m = quantitative_to_meters("uphill_value", "uphill_unit")
+            downhill_m = quantitative_to_meters("downhill_value", "downhill_unit")
+
             feature = {
                 "type": "Feature",
                 "geometry": geometry,
@@ -238,6 +346,10 @@ def main():
                     "url": val(details, "url"),
                     "trail_type": trail_type,
                     "circular": val(details, "circular"),
+                    "length_m": length_m,
+                    "uphill_m": uphill_m,
+                    "downhill_m": downhill_m,
+                    "duration": val(details, "duration"),
                     "license": license_str,
                     "license_url": val(details, "sdLicense"),
                     "publisher_name": publisher_name,
@@ -249,7 +361,9 @@ def main():
 
             geo_info = f"{len(geometry['coordinates'])} pts" if geometry else "no geometry"
             img_info = f"{len(image_urls)} img" if image_urls else "no img"
-            print(f"  [{i}/{len(trail_ids)}] {name} | {trail_type or '?'} | {license_str or '?'} | {img_info} ({geo_info})")
+            dist_info = f"{length_m:.0f}m" if length_m is not None else "?"
+            elev_info = f"+{uphill_m:.0f}m" if uphill_m is not None else ""
+            print(f"  [{i}/{len(trail_ids)}] {name} | {trail_type or '?'} | {dist_info} {elev_info} | {license_str or '?'} | {img_info} ({geo_info})")
 
             if not geometry:
                 no_geometry.append(name or trail_id)
@@ -263,15 +377,15 @@ def main():
     features_no_geo = [ft for ft in features if not ft["geometry"]]
 
     geojson = {"type": "FeatureCollection", "features": features_with_geo}
-    with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
+    with open(output_file, "w", encoding="utf-8") as f:
         json.dump(geojson, f, ensure_ascii=False, indent=2)
 
     geojson_no_geo = {"type": "FeatureCollection", "features": features_no_geo}
-    with open(OUTPUT_FILE_NO_GEO, "w", encoding="utf-8") as f:
+    with open(output_file_no_geo, "w", encoding="utf-8") as f:
         json.dump(geojson_no_geo, f, ensure_ascii=False, indent=2)
 
-    print(f"\nSaved {len(features_with_geo)} routes with geometry to {OUTPUT_FILE}")
-    print(f"Saved {len(features_no_geo)} routes without geometry to {OUTPUT_FILE_NO_GEO}")
+    print(f"\nSaved {len(features_with_geo)} routes with geometry to {output_file}")
+    print(f"Saved {len(features_no_geo)} routes without geometry to {output_file_no_geo}")
 
     if no_geometry:
         print("\nTouren ohne Geometrie:")
