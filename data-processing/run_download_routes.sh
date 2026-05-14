@@ -30,7 +30,8 @@ fi
 IMAGE="${DOCKER_REGISTRY}/streuobstwiesen-pipeline:latest"
 
 echo "$(date): Pulling latest image..." | tee -a "$LOG_FILE"
-docker pull "$IMAGE" >> "$LOG_FILE" 2>&1
+# Requires prior `sudo docker login <registry>` to cache credentials in /root/.docker/config.json
+docker pull "$IMAGE" >> "$LOG_FILE" 2>&1 || echo "$(date): Pull failed, using local image" | tee -a "$LOG_FILE"
 
 echo "$(date): Running routes download..." | tee -a "$LOG_FILE"
 docker run --rm \
