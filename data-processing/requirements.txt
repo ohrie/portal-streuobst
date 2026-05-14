@@ -7,3 +7,4 @@ tqdm>=4.66.0
 geojson>=3.0.0
 click>=8.1.0
 scikit-learn>=1.4.0
+python-dotenv>=1.0.0
