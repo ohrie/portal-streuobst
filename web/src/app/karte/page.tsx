@@ -16,11 +16,13 @@ import MeasureButton from '@/components/map/MeasureButton';
 import EditButton from '@/components/map/EditButton';
 import MapControlButton from '@/components/map/MapControlButton';
 import MeasurePanel from '@/components/map/MeasurePanel';
+import RouteDetailPanel from '@/components/map/RouteDetailPanel';
 import { createOSMPopupHTML } from '@/components/map/OSMPopup';
 import { calculateAreaM2, countTreesInPolygon, getFeatureCenter, type SelectedFeature } from '@/lib/geoArea';
 import { getCachedTrees, cacheTrees } from '@/lib/treeDetectionCache';
 import { saveMeasureSession, loadMeasureSession, clearMeasureSession } from '@/lib/measureSession';
 import partnerOrchards from '../../data/partner-orchards.json';
+import type { RouteFeature } from '@/types/routes';
 
 // Set Mapbox access token
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN || '';
@@ -91,6 +93,20 @@ export default function MapPage() {
   const [loadingTreeIds, setLoadingTreeIds] = useState<Set<string>>(new Set());
   const isTreeAutoDetectRef = useRef(false);
   const detectedTreeFeatures = useRef<GeoJSON.Feature[]>([]);
+
+  const [selectedRoute, setSelectedRoute] = useState<RouteFeature | null>(null);
+  const selectedRouteFeatureId = useRef<number | string | null>(null);
+
+  const closeSelectedRoute = () => {
+    if (selectedRouteFeatureId.current !== null) {
+      map.current?.setFeatureState(
+        { source: 'streuobst-routes', id: selectedRouteFeatureId.current },
+        { selected: false }
+      );
+      selectedRouteFeatureId.current = null;
+    }
+    setSelectedRoute(null);
+  };
 
   // Sheet ref for scrollStyle paddingBottom fix
   const sheetRef = useRef<SheetRef>(null);
@@ -887,6 +903,90 @@ export default function MapPage() {
         map.current!.getCanvas().style.cursor = '';
       });
 
+      // Streuobst routes layer
+      map.current?.addSource('streuobst-routes', {
+        type: 'geojson',
+        data: '/streuobst_routes.geojson',
+        generateId: true,
+      });
+
+      // Wide invisible layer for easier clicking
+      map.current?.addLayer({
+        id: 'streuobst-routes-click',
+        type: 'line',
+        source: 'streuobst-routes',
+        layout: { 'line-join': 'round', 'line-cap': 'round' },
+        paint: { 'line-color': 'rgba(0,0,0,0)', 'line-width': 16 },
+      });
+
+      // Visible route line
+      map.current?.addLayer({
+        id: 'streuobst-routes-line',
+        type: 'line',
+        source: 'streuobst-routes',
+        layout: { 'line-join': 'round', 'line-cap': 'round' },
+        paint: {
+          'line-color': ['case', ['boolean', ['feature-state', 'selected'], false], '#e07b30', '#754c82'],
+          'line-width': ['interpolate', ['linear'], ['zoom'],
+            6, ['case', ['boolean', ['feature-state', 'selected'], false], 4, 2],
+            12, ['case', ['boolean', ['feature-state', 'selected'], false], 7, 4],
+          ],
+          'line-opacity': ['case', ['boolean', ['feature-state', 'selected'], false], 1, 0.75],
+        },
+      });
+
+      // Route click handler
+      map.current?.on('click', 'streuobst-routes-click', (e: mapboxgl.MapMouseEvent) => {
+        if (!e.features || !e.features[0]) return;
+        e.preventDefault();
+        const feature = e.features[0];
+        const props = feature.properties as Record<string, unknown>;
+
+        if (selectedRouteFeatureId.current !== null) {
+          map.current?.setFeatureState(
+            { source: 'streuobst-routes', id: selectedRouteFeatureId.current },
+            { selected: false }
+          );
+        }
+        if (feature.id !== undefined) {
+          selectedRouteFeatureId.current = feature.id as number | string;
+          map.current?.setFeatureState(
+            { source: 'streuobst-routes', id: feature.id },
+            { selected: true }
+          );
+        }
+        const imageUrls = typeof props.image_urls === 'string'
+          ? (props.image_urls === 'null' ? null : JSON.parse(props.image_urls as string))
+          : props.image_urls as string[] | null;
+        setSelectedRoute({
+          name: props.name as string,
+          description_html: props.description_html as string | null,
+          url: props.url as string | null,
+          trail_type: props.trail_type as string | null,
+          circular: props.circular as string,
+          length_m: props.length_m as number | null,
+          uphill_m: props.uphill_m as number | null,
+          downhill_m: props.downhill_m as number | null,
+          duration: props.duration as string | null,
+          license: props.license as string | null,
+          license_url: props.license_url as string | null,
+          publisher_name: props.publisher_name as string,
+          publisher_url: props.publisher_url as string | null,
+          image_urls: imageUrls,
+          geometry: feature.geometry.type === 'MultiLineString'
+            ? (feature.geometry as GeoJSON.MultiLineString).coordinates.flat() as number[][]
+            : (feature.geometry as GeoJSON.LineString).coordinates as number[][],
+        });
+        setSidebarOpen(true);
+      });
+
+      map.current?.on('mouseenter', 'streuobst-routes-click', () => {
+        map.current!.getCanvas().style.cursor = 'pointer';
+      });
+      map.current?.on('mouseleave', 'streuobst-routes-click', () => {
+        map.current!.getCanvas().style.cursor = '';
+      });
+
       // Bounds check for historical aerials (BW only)
       const checkBWBounds = () => {
         if (!map.current) return;
@@ -1314,25 +1414,31 @@ export default function MapPage() {
             <Sheet.Container id="map-sidebar-mobile">
               <Sheet.Header />
               <Sheet.Content disableDrag scrollStyle={{ paddingBottom: sheetPaddingBottom }}>
-                {/* Search in Sheet */}
-                <div className="px-6 pt-4 pb-3 border-b border-gray-200">
-                  <SearchBox
-                    searchQuery={searchQuery}
-                    onSearchQueryChange={setSearchQuery}
-                    searchResults={searchResults}
-                    showSearchResults={showSearchResults}
-                    isSearching={isSearching}
-                    onResultClick={(result) => {
-                      handleSearchResultClick(result);
-                      setSidebarOpen(false);
-                    }}
-                    onClearSearch={handleClearSearch}
-                    onFocus={() => sheetRef.current?.snapTo(2)}
-                  />
-                  <RecentSearches onSearchClick={handleRecentSearchClick} />
-                </div>
+                {selectedRoute ? (
+                  <RouteDetailPanel route={selectedRoute} onClose={closeSelectedRoute} />
+                ) : (
+                  <>
+                    {/* Search in Sheet */}
+                    <div className="px-6 pt-4 pb-3 border-b border-gray-200">
+                      <SearchBox
+                        searchQuery={searchQuery}
+                        onSearchQueryChange={setSearchQuery}
+                        searchResults={searchResults}
+                        showSearchResults={showSearchResults}
+                        isSearching={isSearching}
+                        onResultClick={(result) => {
+                          handleSearchResultClick(result);
+                          setSidebarOpen(false);
+                        }}
+                        onClearSearch={handleClearSearch}
+                        onFocus={() => sheetRef.current?.snapTo(2)}
+                      />
+                      <RecentSearches onSearchClick={handleRecentSearchClick} />
+                    </div>
 
-                <MapLegend onClose={() => setSidebarOpen(false)} showCloseButton={true} lastUpdated={lastUpdated} />
+                    <MapLegend onClose={() => setSidebarOpen(false)} showCloseButton={true} lastUpdated={lastUpdated} />
+                  </>
+                )}
               </Sheet.Content>
             </Sheet.Container>
             <Sheet.Backdrop onTap={() => setSidebarOpen(false)} />
@@ -1427,34 +1533,40 @@ export default function MapPage() {
               }`}>
               {/* Sidebar Content */}
               <div className="flex-1 overflow-hidden flex flex-col">
-                {/* Close Button - Top Right within Sidebar */}
-                <div className="flex justify-end p-4 pb-0">
-                  <button
-                    type="button"
-                    onClick={() => setSidebarOpen(false)}
-                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                    title="Schließen"
-                    aria-label="Kartenlegende schließen"
-                  >
-                    <X className="w-5 h-5 text-gray-600" />
-                  </button>
-                </div>
+                {selectedRoute ? (
+                  <RouteDetailPanel route={selectedRoute} onClose={closeSelectedRoute} />
+                ) : (
+                  <>
+                    {/* Close Button - Top Right within Sidebar */}
+                    <div className="flex justify-end p-4 pb-0">
+                      <button
+                        type="button"
+                        onClick={() => setSidebarOpen(false)}
+                        className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                        title="Schließen"
+                        aria-label="Kartenlegende schließen"
+                      >
+                        <X className="w-5 h-5 text-gray-600" />
+                      </button>
+                    </div>
 
-                {/* Search Box */}
-                <div className="px-6 pb-3">
-                  <SearchBox
-                    searchQuery={searchQuery}
-                    onSearchQueryChange={setSearchQuery}
-                    searchResults={searchResults}
-                    showSearchResults={showSearchResults}
-                    isSearching={isSearching}
-                    onResultClick={handleSearchResultClick}
-                    onClearSearch={handleClearSearch}
-                  />
-                  <RecentSearches onSearchClick={handleRecentSearchClick} />
-                </div>
+                    {/* Search Box */}
+                    <div className="px-6 pb-3">
+                      <SearchBox
+                        searchQuery={searchQuery}
+                        onSearchQueryChange={setSearchQuery}
+                        searchResults={searchResults}
+                        showSearchResults={showSearchResults}
+                        isSearching={isSearching}
+                        onResultClick={handleSearchResultClick}
+                        onClearSearch={handleClearSearch}
+                      />
+                      <RecentSearches onSearchClick={handleRecentSearchClick} />
+                    </div>
 
-                <MapLegend lastUpdated={lastUpdated} />
+                    <MapLegend lastUpdated={lastUpdated} />
+                  </>
+                )}
               </div>
 
               {/* Resize Handle */}

@@ -85,6 +85,17 @@ export default function MapLegend({ onClose, showCloseButton = false, lastUpdate
                             osmTags={[{ key: 'natural', value: 'tree' }]}
                         />
 
+                        {/* Streuobst-Routen */}
+                        <LegendItem
+                            icon={
+                                <div className="w-6 h-5 flex items-center shrink-0 mt-0.5">
+                                    <div className="w-full h-1 rounded-full" style={{ backgroundColor: '#754c82' }}></div>
+                                </div>
+                            }
+                            title="Streuobst-Routen"
+                            description="Fahrrad- und Wanderrouten"
+                        />
+
                     </div>
                 </div>
 

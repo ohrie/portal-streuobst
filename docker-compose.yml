@@ -6,6 +6,7 @@ services:
     volumes:
       - ./data/stats.json:/usr/share/nginx/html/stats.json:ro
       - ./data/stats_laender.json:/usr/share/nginx/html/stats_laender.json:ro
+      - ./data/streuobst_routes.geojson:/usr/share/nginx/html/streuobst_routes.geojson:ro
     networks:
       - streuobst_network
     labels:

@@ -18,13 +18,18 @@ COPYRIGHT / LICENSE NOTE:
 
 import argparse
 import json
+import math
 import os
+import re
 import sys
 import time
 from pathlib import Path
 
+import markdown as md_lib
+
 import requests
 from dotenv import load_dotenv
+from shapely.geometry import shape as _shape, mapping as _mapping
 
 load_dotenv(Path(__file__).parent.parent / ".env")
 
@@ -202,8 +207,55 @@ def fetch_publisher(publisher_id: str) -> tuple[str | None, str | None]:
     return name, url
 
 
-def fetch_geo_line(geo_id: str) -> list[list[float]] | None:
-    """Fetch coordinate line from a GeoShape entity. Returns [[lon, lat], ...] or None."""
+MAX_SEGMENT_JUMP_M = 5_000  # jumps longer than this are considered data artifacts
+
+COORD_PRECISION = 6        # ~0.1m accuracy — sufficient for hiking/cycling trails
+SIMPLIFY_TOLERANCE = 0.00005  # Douglas-Peucker tolerance in degrees (~5m): very high quality
+
+
+def _round_coords(obj: list) -> list:
+    if isinstance(obj[0], (int, float)):
+        return [round(c, COORD_PRECISION) for c in obj]
+    return [_round_coords(c) for c in obj]
+
+
+def simplify_geometry(geometry: dict) -> dict:
+    """Apply Douglas-Peucker simplification and round coordinates."""
+    geom = _shape(geometry)
+    simplified = geom.simplify(SIMPLIFY_TOLERANCE, preserve_topology=False)
+    result = dict(_mapping(simplified))
+    result["coordinates"] = _round_coords(list(result["coordinates"]))
+    return result
+
+
+def _haversine_m(lon1: float, lat1: float, lon2: float, lat2: float) -> float:
+    R = 6_371_000
+    phi1, phi2 = math.radians(lat1), math.radians(lat2)
+    dphi = math.radians(lat2 - lat1)
+    dlambda = math.radians(lon2 - lon1)
+    a = math.sin(dphi / 2) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda / 2) ** 2
+    return 2 * R * math.asin(math.sqrt(a))
+
+
+def _split_at_jumps(coords: list[list[float]]) -> list[list[list[float]]]:
+    """Split a coordinate list into segments wherever consecutive points jump too far."""
+    segments = []
+    current = [coords[0]]
+    for p in coords[1:]:
+        if _haversine_m(*current[-1], *p) > MAX_SEGMENT_JUMP_M:
+            if len(current) >= 2:
+                segments.append(current)
+            current = [p]
+        else:
+            current.append(p)
+    if len(current) >= 2:
+        segments.append(current)
+    return segments
+
+
+def fetch_geo_line(geo_id: str) -> dict | None:
+    """Fetch coordinate line from a GeoShape entity.
+    Returns a GeoJSON geometry (LineString or MultiLineString) or None."""
     rows = sparql(f"""
         SELECT ?line WHERE {{
             <{geo_id}> <https://schema.org/line> ?line
@@ -221,7 +273,14 @@ def fetch_geo_line(geo_id: str) -> list[list[float]] | None:
                 coords.append([lon, lat])
             except ValueError:
                 continue
-    return coords if len(coords) >= 2 else None
+    if len(coords) < 2:
+        return None
+    segments = _split_at_jumps(coords)
+    if not segments:
+        return None
+    if len(segments) == 1:
+        return {"type": "LineString", "coordinates": segments[0]}
+    return {"type": "MultiLineString", "coordinates": segments}
 
 
 def extract_trail_type(keywords: list[str]) -> str | None:
@@ -236,6 +295,33 @@ def extract_license(keywords: list[str]) -> str | None:
         if any(kw.startswith(prefix) for prefix in LICENSE_PREFIXES):
             return kw
     return None
+
+
+def haversine_length_m(coords: list[list[float]]) -> float:
+    """Return total length in metres for a [[lon, lat], ...] coordinate list."""
+    R = 6_371_000
+    total = 0.0
+    for (lon1, lat1), (lon2, lat2) in zip(coords, coords[1:]):
+        phi1, phi2 = math.radians(lat1), math.radians(lat2)
+        dphi = math.radians(lat2 - lat1)
+        dlambda = math.radians(lon2 - lon1)
+        a = math.sin(dphi / 2) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda / 2) ** 2
+        total += 2 * R * math.asin(math.sqrt(a))
+    return total
+
+
+_URL_RE = re.compile(r"https?://\S+")
+
+
+def _description_or_none(raw: str | None) -> str | None:
+    """Return None if raw is empty, onlim.com-only, or consists solely of a URL."""
+    if not raw:
+        return None
+    if "onlim.com" in raw:
+        return None
+    if not _URL_RE.sub("", raw).strip():
+        return None
+    return md_lib.markdown(raw) or None
 
 
 def val(binding: dict, key: str) -> str | None:
@@ -312,10 +398,10 @@ def main():
             geo_id = val(details, "geo")
             geometry = None
             if geo_id:
-                coords = fetch_geo_line(geo_id)
-                if coords:
-                    geometry = {"type": "LineString", "coordinates": coords}
+                geometry = fetch_geo_line(geo_id)
                 time.sleep(0.1)
+                if geometry:
+                    geometry = simplify_geometry(geometry)
 
             name = val(details, "name")
 
@@ -333,6 +419,11 @@ def main():
                     return None
 
             length_m = quantitative_to_meters("length_value", "length_unit")
+            if length_m is None and geometry:
+                if geometry["type"] == "LineString":
+                    length_m = haversine_length_m(geometry["coordinates"])
+                elif geometry["type"] == "MultiLineString":
+                    length_m = sum(haversine_length_m(seg) for seg in geometry["coordinates"])
             uphill_m = quantitative_to_meters("uphill_value", "uphill_unit")
             downhill_m = quantitative_to_meters("downhill_value", "downhill_unit")
 
@@ -342,7 +433,7 @@ def main():
                 "properties": {
                     "source_id": trail_id,
                     "name": name,
-                    "description": val(details, "description"),
+                    "description_html": _description_or_none(val(details, "description")),
                     "url": val(details, "url"),
                     "trail_type": trail_type,
                     "circular": val(details, "circular"),
@@ -359,7 +450,13 @@ def main():
             }
             features.append(feature)
 
-            geo_info = f"{len(geometry['coordinates'])} pts" if geometry else "no geometry"
+            if geometry is None:
+                geo_info = "no geometry"
+            elif geometry["type"] == "LineString":
+                geo_info = f"{len(geometry['coordinates'])} pts"
+            else:
+                total_pts = sum(len(s) for s in geometry["coordinates"])
+                geo_info = f"{len(geometry['coordinates'])} seg, {total_pts} pts"
             img_info = f"{len(image_urls)} img" if image_urls else "no img"
             dist_info = f"{length_m:.0f}m" if length_m is not None else "?"
             elev_info = f"+{uphill_m:.0f}m" if uphill_m is not None else ""
@@ -376,13 +473,19 @@ def main():
     features_with_geo = [ft for ft in features if ft["geometry"]]
     features_no_geo = [ft for ft in features if not ft["geometry"]]
 
+    tmp_file = output_file.with_suffix(".geojson.tmp")
+    tmp_file_no_geo = output_file_no_geo.with_suffix(".geojson.tmp")
+
     geojson = {"type": "FeatureCollection", "features": features_with_geo}
-    with open(output_file, "w", encoding="utf-8") as f:
-        json.dump(geojson, f, ensure_ascii=False, indent=2)
+    with open(tmp_file, "w", encoding="utf-8") as f:
+        json.dump(geojson, f, ensure_ascii=False, separators=(",", ":"))
 
     geojson_no_geo = {"type": "FeatureCollection", "features": features_no_geo}
-    with open(output_file_no_geo, "w", encoding="utf-8") as f:
-        json.dump(geojson_no_geo, f, ensure_ascii=False, indent=2)
+    with open(tmp_file_no_geo, "w", encoding="utf-8") as f:
+        json.dump(geojson_no_geo, f, ensure_ascii=False, separators=(",", ":"))
+
+    tmp_file.replace(output_file)
+    tmp_file_no_geo.replace(output_file_no_geo)
 
     print(f"\nSaved {len(features_with_geo)} routes with geometry to {output_file}")
     print(f"Saved {len(features_no_geo)} routes without geometry to {output_file_no_geo}")

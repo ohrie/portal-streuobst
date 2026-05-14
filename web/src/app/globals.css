@@ -69,6 +69,15 @@ h6 {
   border-left-color: var(--color-accent);
 }
 
+/* Markdown-rendered description in route detail panel */
+.route-description p { margin-bottom: 0.5rem; }
+.route-description ul, .route-description ol { margin: 0.5rem 0 0.5rem 1.25rem; }
+.route-description li { margin-bottom: 0.125rem; }
+.route-description h1, .route-description h2, .route-description h3 { font-size: 0.9rem; font-weight: 600; margin: 0.75rem 0 0.25rem; }
+.route-description strong { font-weight: 600; }
+.route-description em { font-style: italic; }
+.route-description a { color: var(--color-primary); text-decoration: underline; }
+
 /* Bento Grid Layout - no borders, centered content */
 .bento-grid {
   display: grid;
