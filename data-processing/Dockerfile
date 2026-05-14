@@ -56,6 +56,7 @@ RUN pip3 install --no-cache-dir --break-system-packages -r requirements.txt
 # Copy application files
 COPY process_streuobstwiesen.py .
 COPY process_laender_stats.py .
+COPY download_streuobst_routes.py .
 COPY geodata/bundeslaender.geojson geodata/
 COPY *.sh .
 
