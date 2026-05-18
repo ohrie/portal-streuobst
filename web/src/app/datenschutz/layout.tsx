@@ -8,6 +8,9 @@ export const metadata: Metadata = {
         index: false,
         follow: false,
     },
+    alternates: {
+        canonical: "/datenschutz",
+    },
 };
 
 export default function DatenschutzLayout({

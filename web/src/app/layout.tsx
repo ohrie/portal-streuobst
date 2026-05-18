@@ -8,6 +8,7 @@ import "./globals.css";
 const BACKGROUND_COLOR = "#faf4e1";
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://portal-streuobst.de"),
   title: {
     default: "Streuobstwiesen Portal | Infos und Karte aller Obstwiesen in Deutschland",
     template: "%s | Streuobstwiesen Portal",
@@ -15,6 +16,9 @@ export const metadata: Metadata = {
   description: "Entdecke Streuobstwiesen in ganz Deutschland. Eine interaktive Karte mit allen Obstwiesen, Partnerinitiativen und Informationen rund um den traditionellen Obstbau.",
   keywords: "Streuobstwiesen, Obstwiesen, Deutschland, Karte, NABU, Obstbau, Apfelwiesen",
   authors: [{ name: "Japfel" }],
+  alternates: {
+    canonical: "/",
+  },
   openGraph: {
     title: "Streuobstwiesen Portal",
     description: "Entdecke Streuobstwiesen in ganz Deutschland",

@@ -8,6 +8,9 @@ export const metadata: Metadata = {
         index: false,
         follow: false,
     },
+    alternates: {
+        canonical: "/impressum",
+    },
 };
 
 export default function ImpressumLayout({
