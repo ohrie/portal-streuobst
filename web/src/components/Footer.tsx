@@ -4,7 +4,7 @@ import { ExternalLink } from 'lucide-react';
 
 const footerLinks = {
     infos: [
-        { name: 'Über Streuobstwiesen', href: '/about/' },
+        { name: 'Über Streuobstwiesen', href: '/ueber/' },
         { name: 'Mitmachen & Daten', href: '/data/' },
         { name: 'Streuobstwiesen Karte', href: '/karte/' },
     ],

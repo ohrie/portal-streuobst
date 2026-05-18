@@ -172,7 +172,7 @@ export default function Home() {
                 <p className="text-foreground mb-6">
                   Erfahre mehr über die Bedeutung und den ökologischen Wert von Streuobstwiesen.
                 </p>
-                <Button href="/about/" variant="outline">
+                <Button href="/ueber/" variant="outline">
                   Mehr erfahren <ArrowRight className="w-4 h-4" />
                 </Button>
               </BentoCard>

@@ -24,7 +24,7 @@ const navigation: NavigationItem[] = [
     },
     {
         name: 'Über Wiesen',
-        href: '/about/'
+        href: '/ueber/'
     },
     {
         name: 'Statistiken',

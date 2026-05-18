@@ -6,7 +6,7 @@ export const metadata: Metadata = {
     description: "Erfahre alles über Streuobstwiesen: ihre Bedeutung für Artenvielfalt, Klima und Kulturlandschaft in Deutschland. Hochstamm-Obstbäume und ihre ökologische Rolle.",
     keywords: "Streuobstwiesen Bedeutung, Hochstamm Obstbäume, Artenvielfalt, Kulturlandschaft, Obstwiesen Ökologie",
     alternates: {
-        canonical: "/about",
+        canonical: "/ueber",
     },
 };
 
