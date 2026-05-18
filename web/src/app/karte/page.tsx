@@ -327,6 +327,14 @@ export default function MapPage() {
     // Add navigation controls
     map.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
 
+    map.current.addControl(
+      new mapboxgl.GeolocateControl({
+        positionOptions: { enableHighAccuracy: true },
+        trackUserLocation: false,
+      }),
+      'top-right'
+    );
+
     map.current.on('load', () => {
       // Add satellite raster source
       map.current?.addSource('satellite', {
