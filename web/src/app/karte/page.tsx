@@ -212,26 +212,54 @@ export default function MapPage() {
       return;
     }
 
+    const mapInstance = map.current;
+    if (!mapInstance || !mapInstance.getLayer('streuobst-routes-selected')) return;
+
     const dashLen = 3;
     const gapLen = 4;
     const period = dashLen + gapLen;
     // Dauer einer vollständigen Umdrehung in ms.
     // Kleinerer Wert = schneller, größerer Wert = langsamer.
     const cycleDuration = 3000;
+    // Anzahl diskreter Schritte pro Umdrehung — bestimmt wie oft setPaintProperty
+    // aufgerufen wird (steps / cycleDuration * 1000 Hz). 60 Schritte bei 3000 ms = 20 Hz,
+    // was für das Auge flüssig wirkt und den GPU-Aufwand gegenüber 60 Hz drittelt.
+    const steps = 60;
 
+    // Alle Frames einmalig vorberechnen: keine Array-Allokation im Loop,
+    // und Mapbox erhält bei jedem Schritt dieselbe Objektreferenz (kein unnötiger Redraw).
+    const frames: number[][] = Array.from({ length: steps }, (_, i) => {
+      const T = (i / steps) * period;
+      return T < dashLen
+        ? [dashLen - T, gapLen, T]
+        : [0, gapLen - (T - dashLen), dashLen, T - dashLen];
+    });
+
+    // setPaintProperty einmal binden — eliminiert den Property-Lookup im Hot Path.
+    const setPaint = mapInstance.setPaintProperty.bind(mapInstance);
+
+    let lastStep = -1;
     const animate = (timestamp: number) => {
-      // Kontinuierlicher Versatz [0, period) — läuft mit voller Framerate (~60 fps)
-      const T = (timestamp % cycleDuration) / cycleDuration * period;
-      const dashArray: number[] =
-        T < dashLen
-          ? [dashLen - T, gapLen, T]
-          : [0, gapLen - (T - dashLen), dashLen, T - dashLen];
-
-      if (map.current?.getLayer('streuobst-routes-selected')) {
-        map.current.setPaintProperty('streuobst-routes-selected', 'line-dasharray', dashArray);
+      const step = Math.floor((timestamp % cycleDuration) / cycleDuration * steps);
+      if (step !== lastStep) {
+        lastStep = step;
+        setPaint('streuobst-routes-selected', 'line-dasharray', frames[step]);
       }
       animFrameRef.current = requestAnimationFrame(animate);
     };
+
+    // Loop pausieren wenn Tab versteckt ist, fortsetzen beim Zurückkehren.
+    const handleVisibility = () => {
+      if (document.hidden) {
+        if (animFrameRef.current !== null) {
+          cancelAnimationFrame(animFrameRef.current);
+          animFrameRef.current = null;
+        }
+      } else {
+        animFrameRef.current = requestAnimationFrame(animate);
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
 
     animFrameRef.current = requestAnimationFrame(animate);
 
@@ -240,6 +268,7 @@ export default function MapPage() {
         cancelAnimationFrame(animFrameRef.current);
         animFrameRef.current = null;
       }
+      document.removeEventListener('visibilitychange', handleVisibility);
     };
   }, [selectedRoute]);
 
