@@ -96,6 +96,7 @@ export default function MapPage() {
 
   const [selectedRoute, setSelectedRoute] = useState<RouteFeature | null>(null);
   const selectedRouteFeatureId = useRef<number | string | null>(null);
+  const animFrameRef = useRef<number | null>(null);
 
   const closeSelectedRoute = () => {
     if (selectedRouteFeatureId.current !== null) {
@@ -200,6 +201,47 @@ export default function MapPage() {
   useEffect(() => {
     isTreeAutoDetectRef.current = isTreeAutoDetect;
   }, [isTreeAutoDetect]);
+
+  // Marching-ants animation for selected route
+  useEffect(() => {
+    if (!selectedRoute) {
+      if (animFrameRef.current !== null) {
+        cancelAnimationFrame(animFrameRef.current);
+        animFrameRef.current = null;
+      }
+      return;
+    }
+
+    const dashLen = 3;
+    const gapLen = 4;
+    const period = dashLen + gapLen;
+    // Dauer einer vollständigen Umdrehung in ms.
+    // Kleinerer Wert = schneller, größerer Wert = langsamer.
+    const cycleDuration = 3000;
+
+    const animate = (timestamp: number) => {
+      // Kontinuierlicher Versatz [0, period) — läuft mit voller Framerate (~60 fps)
+      const T = (timestamp % cycleDuration) / cycleDuration * period;
+      const dashArray: number[] =
+        T < dashLen
+          ? [dashLen - T, gapLen, T]
+          : [0, gapLen - (T - dashLen), dashLen, T - dashLen];
+
+      if (map.current?.getLayer('streuobst-routes-selected')) {
+        map.current.setPaintProperty('streuobst-routes-selected', 'line-dasharray', dashArray);
+      }
+      animFrameRef.current = requestAnimationFrame(animate);
+    };
+
+    animFrameRef.current = requestAnimationFrame(animate);
+
+    return () => {
+      if (animFrameRef.current !== null) {
+        cancelAnimationFrame(animFrameRef.current);
+        animFrameRef.current = null;
+      }
+    };
+  }, [selectedRoute]);
 
   // Search functionality using Photon API
   const searchLocation = async (query: string) => {
@@ -934,7 +976,7 @@ export default function MapPage() {
         source: 'streuobst-routes',
         layout: { 'line-join': 'round', 'line-cap': 'round' },
         paint: {
-          'line-color': ['case', ['boolean', ['feature-state', 'selected'], false], '#e07b30', '#754c82'],
+          'line-color': '#754c82',
           'line-width': ['interpolate', ['linear'], ['zoom'],
             6, ['case', ['boolean', ['feature-state', 'selected'], false], 4, 2],
             12, ['case', ['boolean', ['feature-state', 'selected'], false], 7, 4],
@@ -942,6 +984,20 @@ export default function MapPage() {
           'line-opacity': ['case', ['boolean', ['feature-state', 'selected'], false], 1, 0.75],
         },
       });
+
+      // Animated dashed overlay for selected route (marching ants)
+      map.current?.addLayer({
+        id: 'streuobst-routes-selected',
+        type: 'line',
+        source: 'streuobst-routes',
+        layout: { 'line-join': 'round', 'line-cap': 'butt' },
+        paint: {
+          'line-color': 'rgba(255,255,255,0.85)',
+          'line-width': ['interpolate', ['linear'], ['zoom'], 6, 2.5, 12, 4.5],
+          'line-dasharray': [3, 4],
+          'line-opacity': ['case', ['boolean', ['feature-state', 'selected'], false], 1, 0],
+        },
+      } as any);
 
       // Route click handler
       map.current?.on('click', 'streuobst-routes-click', (e: mapboxgl.MapMouseEvent) => {
