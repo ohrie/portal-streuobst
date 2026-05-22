@@ -62,6 +62,94 @@ export default function Home() {
           <StatsDisplay />
         </section>
 
+        {/* Features Section */}
+        <section className="py-20 px-4">
+          <div className="max-w-6xl mx-auto">
+            <div className="text-center mb-14">
+              <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4 font-heading">
+                Was bietet das Portal?
+              </h2>
+              <p className="text-lg text-foreground/70 max-w-2xl mx-auto">
+                Drei Werkzeuge für Streuobstwiesen – von der Übersicht bis zur detaillierten Analyse.
+              </p>
+            </div>
+
+            <div className="grid md:grid-cols-3 gap-8">
+              {/* Karte */}
+              <div className="group bg-background rounded-2xl overflow-hidden shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200">
+                <div className="relative h-52 overflow-hidden">
+                  <Image
+                    src="/features/karte.avif"
+                    alt="Karte der Streuobstwiesen auf der Schwäbischen Alb"
+                    fill
+                    sizes="(max-width: 767px) 100vw, 33vw"
+                    className="object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+                </div>
+                <div className="p-6">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Map className="w-5 h-5 text-tertiary flex-none" />
+                    <h3 className="text-xl font-bold text-foreground font-heading">Streuobstwiesen Karte</h3>
+                  </div>
+                  <p className="text-sm text-foreground/70 leading-relaxed">
+                    Detaillierte, interaktive Karte aller Streuobstwiesen und Obstbäume in Deutschland – basierend auf OpenStreetMap-Daten.
+                  </p>
+                </div>
+              </div>
+
+              {/* Automatische Baumermittlung */}
+              <div className="group bg-background rounded-2xl overflow-hidden shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200">
+                <div className="relative h-52 overflow-hidden">
+                  <Image
+                    src="/features/baumermittlung.avif"
+                    alt="Automatische Baumermittlung auf einer Streuobstwiese"
+                    fill
+                    sizes="(max-width: 767px) 100vw, 33vw"
+                    className="object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+                  <span className="absolute top-3 left-3 bg-primary text-background text-xs font-semibold px-2.5 py-1 rounded-full">
+                    Beta
+                  </span>
+                </div>
+                <div className="p-6">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Eye className="w-5 h-5 text-primary flex-none" />
+                    <h3 className="text-xl font-bold text-foreground font-heading">Automatische Baumzählung</h3>
+                  </div>
+                  <p className="text-sm text-foreground/70 leading-relaxed mb-3">
+                    KI-unterstützte Erkennung und Zählung einzelner Obstbäume auf Streuobstwiesen aus Geländemodellen.
+                  </p>
+                  <span className="inline-block text-xs text-primary/80 bg-primary/10 px-2.5 py-1 rounded-full font-medium">
+                    Nur Baden-Württemberg & Bayern
+                  </span>
+                </div>
+              </div>
+
+              {/* Routen */}
+              <div className="group bg-background rounded-2xl overflow-hidden shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200">
+                <div className="relative h-52 overflow-hidden">
+                  <Image
+                    src="/features/routen.avif"
+                    alt="Streuobst Rundweg Route auf der Karte"
+                    fill
+                    sizes="(max-width: 767px) 100vw, 33vw"
+                    className="object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+                </div>
+                <div className="p-6">
+                  <div className="flex items-center gap-2 mb-3">
+                    <MapPin className="w-5 h-5 text-accent flex-none" />
+                    <h3 className="text-xl font-bold text-foreground font-heading">Streuobst Routen</h3>
+                  </div>
+                  <p className="text-sm text-foreground/70 leading-relaxed">
+                    Ausgewählte Fahrrad- und Wanderrouten entlang von Streuobstwiesen – für Erkundungstouren durch die Kulturlandschaft.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* Einführung Section */}
         <section className="py-16 px-4 bg-light">
           <div className="max-w-6xl mx-auto">
