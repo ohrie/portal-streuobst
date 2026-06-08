@@ -1,5 +1,5 @@
 # Build stage - runs on native host platform to avoid QEMU emulation issues
-FROM --platform=$BUILDPLATFORM node:24-alpine AS builder
+FROM --platform=$BUILDPLATFORM node:26-alpine AS builder
 
 WORKDIR /app
 
