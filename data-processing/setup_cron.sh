@@ -24,13 +24,13 @@ source "$VENV_DIR/bin/activate"
 
 # Run processing with logging
 echo "\$(date): Starting Streuobstwiesen data processing" >> "$LOG_FILE"
-python "$PROCESS_SCRIPT" >> "$LOG_FILE" 2>&1
+python3 "$PROCESS_SCRIPT" >> "$LOG_FILE" 2>&1
 EXIT_CODE=\$?
 
 if [ \$EXIT_CODE -eq 0 ]; then
     echo "\$(date): Processing completed successfully" >> "$LOG_FILE"
     echo "\$(date): Starting Bundesland statistics" >> "$LOG_FILE"
-    python "$LAENDER_STATS_SCRIPT" >> "$LOG_FILE" 2>&1
+    python3 "$LAENDER_STATS_SCRIPT" >> "$LOG_FILE" 2>&1
     LAENDER_EXIT=\$?
     if [ \$LAENDER_EXIT -eq 0 ]; then
         echo "\$(date): Bundesland statistics completed successfully" >> "$LOG_FILE"
