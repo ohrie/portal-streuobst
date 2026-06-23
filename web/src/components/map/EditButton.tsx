@@ -11,7 +11,7 @@ interface EditButtonProps {
 }
 
 export default function EditButton({ map, onOpenIdEditor }: EditButtonProps) {
-  const [josmData, setJosmData] = useState<{ ids: string[]; tooMany: boolean } | null>(null);
+  const [josmData, setJosmData] = useState<{ ids: string[]; tooMany: boolean; zoom: number } | null>(null);
   const [josmError, setJosmError] = useState(false);
 
   const handleMouseEnter = () => {
@@ -27,7 +27,7 @@ export default function EditButton({ map, onOpenIdEditor }: EditButtonProps) {
       if (id) seen.add(String(id));
     }
     const ids = Array.from(seen);
-    setJosmData({ ids, tooMany: ids.length > 100 });
+    setJosmData({ ids, tooMany: ids.length > 100, zoom: map.current.getZoom() });
   };
 
   const handleMouseLeave = () => {
@@ -35,15 +35,38 @@ export default function EditButton({ map, onOpenIdEditor }: EditButtonProps) {
     setJosmError(false);
   };
 
+  // Bei 0 Objekten wird der Kartenausschnitt geladen — das nur ab Zoom 14 erlauben,
+  // da darunter der Ausschnitt für JOSM zu groß wäre.
+  const MIN_VIEWPORT_ZOOM = 14;
+  const viewportTooLarge = !!josmData && josmData.ids.length === 0 && josmData.zoom < MIN_VIEWPORT_ZOOM;
+  const josmDisabled = !josmData || josmData.tooMany || viewportTooLarge;
+
   const openInJosm = async () => {
-    if (!josmData || josmData.tooMany) return;
-    const objects = josmData.ids
-      .map(osmIdToJosmObject)
-      .filter(Boolean)
-      .join(',');
-    if (!objects) return;
+    if (!josmData || josmDisabled || !map.current) return;
+
+    let url: string;
+    if (josmData.ids.length === 0) {
+      // Keine Objekte sichtbar: aktuellen Kartenausschnitt in JOSM laden
+      const bounds = map.current.getBounds();
+      if (!bounds) return;
+      const params = new URLSearchParams({
+        left: String(bounds.getWest()),
+        right: String(bounds.getEast()),
+        top: String(bounds.getNorth()),
+        bottom: String(bounds.getSouth()),
+      });
+      url = `http://localhost:8111/load_and_zoom?${params.toString()}`;
+    } else {
+      const objects = josmData.ids
+        .map(osmIdToJosmObject)
+        .filter(Boolean)
+        .join(',');
+      if (!objects) return;
+      url = `http://localhost:8111/load_object?objects=${objects}`;
+    }
+
     try {
-      const res = await fetch(`http://localhost:8111/load_object?objects=${objects}`, {
+      const res = await fetch(url, {
         signal: AbortSignal.timeout(2000),
       });
       if (!res.ok) throw new Error('not ok');
@@ -79,10 +102,16 @@ export default function EditButton({ map, onOpenIdEditor }: EditButtonProps) {
           {/* JOSM row */}
           <button
             type="button"
-            disabled={!josmData || josmData.tooMany}
+            disabled={josmDisabled}
             onClick={openInJosm}
-            title={josmData?.tooMany ? `Zu viele Objekte (${josmData.ids.length} > 100) — bitte zoomen` : 'In JOSM öffnen'}
-            className={`flex items-center gap-2 w-full rounded-lg px-2 py-1.5 text-left transition-colors ${!josmData || josmData.tooMany
+            title={josmData?.tooMany
+              ? `Zu viele Objekte (${josmData.ids.length} > 100) — bitte zoomen`
+              : viewportTooLarge
+                ? 'Für den Kartenausschnitt bitte näher heranzoomen (ab Zoom 14)'
+                : josmData?.ids.length === 0
+                  ? 'Aktuellen Kartenausschnitt in JOSM öffnen'
+                  : 'In JOSM öffnen'}
+            className={`flex items-center gap-2 w-full rounded-lg px-2 py-1.5 text-left transition-colors ${josmDisabled
               ? 'opacity-40 cursor-not-allowed'
               : 'hover:bg-gray-50 cursor-pointer'
               }`}
@@ -92,13 +121,20 @@ export default function EditButton({ map, onOpenIdEditor }: EditButtonProps) {
             </svg>
             <span className="text-xs text-gray-700 flex-1">JOSM</span>
             {josmData && (
-              <span className="text-[10px] text-gray-400">{josmData.ids.length} Obj.</span>
+              <span className="text-[10px] text-gray-400">
+                {josmData.ids.length === 0 ? 'Ausschnitt' : `${josmData.ids.length} Obj.`}
+              </span>
             )}
           </button>
 
           {josmData?.tooMany && (
             <p className="text-[10px] text-gray-400 px-2 pb-1 leading-tight">
               Zu viele Objekte ({josmData.ids.length} &gt; 100) — bitte zoomen
+            </p>
+          )}
+          {viewportTooLarge && (
+            <p className="text-[10px] text-gray-400 px-2 pb-1 leading-tight">
+              Für das Öffnen des Kartenausschnitts bitte näher heranzoomen (ab Zoom 14)
             </p>
           )}
           {josmError && (
