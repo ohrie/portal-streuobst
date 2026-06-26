@@ -660,6 +660,35 @@ export default function MapPage() {
         }
       });
 
+      // Tree ref label inside the circle (zoom 18+): only short refs (< 3 characters)
+      map.current?.addLayer({
+        id: 'baeume-label-ref',
+        type: 'symbol',
+        source: 'streuobstwiesen',
+        'source-layer': 'baeume',
+        minzoom: 18,
+        filter: ['all', ['has', 'ref'], ['<', ['length', ['to-string', ['get', 'ref']]], 4]],
+        layout: {
+          'text-field': ['to-string', ['get', 'ref']],
+          'text-font': ['Open Sans Bold', 'Arial Unicode MS Regular'],
+          'text-size': [
+            'interpolate',
+            ['exponential', 1.3],
+            ['zoom'],
+            18, 7,
+            20, 14
+          ],
+          'text-anchor': 'center',
+          'text-allow-overlap': true,
+          'text-ignore-placement': true,
+        },
+        paint: {
+          'text-color': '#ffffff',
+          'text-halo-color': 'rgba(0, 100, 0, 0.9)',
+          'text-halo-width': 1,
+        }
+      });
+
       // Add partner orchards data
       map.current?.addSource('partner-orchards', {
         type: 'geojson',
