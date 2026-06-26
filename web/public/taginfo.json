@@ -1,0 +1,56 @@
+{
+  "data_format": 1,
+  "data_url": "https://portal-streuobst.de/taginfo.json",
+  "project": {
+    "name": "Streuobstwiesen-Karte (portal-streuobst.de)",
+    "description": "Interaktive Karte zur Visualisierung und Entdeckung von Streuobstwiesen, Obstgaerten und Obstbaeumen in Deutschland auf Basis von OpenStreetMap-Daten.",
+    "project_url": "https://portal-streuobst.de",
+    "doc_url": "https://portal-streuobst.de/data",
+    "icon_url": "https://portal-streuobst.de/wiese-logo.svg",
+    "contact_name": "Henri",
+    "contact_email": "hallo@portal-streuobst.de"
+  },
+  "tags": [
+    {
+      "key": "landuse",
+      "value": "orchard",
+      "object_types": ["area"],
+      "description": "Obstgarten-Flaechen werden als Basisflaechen auf der Karte dargestellt.",
+      "doc_url": "https://wiki.openstreetmap.org/wiki/Tag:landuse%3Dorchard"
+    },
+    {
+      "key": "meadow",
+      "value": "meadow_orchard",
+      "object_types": ["area"],
+      "description": "Kennzeichnet eine Wiese als Streuobstwiese (in Kombination mit landuse=meadow).",
+      "doc_url": "https://wiki.openstreetmap.org/wiki/Tag:meadow%3Dmeadow_orchard"
+    },
+    {
+      "key": "orchard",
+      "value": "meadow_orchard",
+      "object_types": ["area"],
+      "description": "Kennzeichnet einen Obstgarten als Streuobstwiese; orange hervorgehoben.",
+      "doc_url": "https://wiki.openstreetmap.org/wiki/Tag:orchard%3Dmeadow_orchard"
+    },
+    {
+      "key": "orchard",
+      "value": "plantation",
+      "object_types": ["area"],
+      "description": "Plantagen werden zur Abgrenzung von Streuobstwiesen grau dargestellt.",
+      "doc_url": "https://wiki.openstreetmap.org/wiki/Key:orchard"
+    },
+    {
+      "key": "natural",
+      "value": "tree",
+      "object_types": ["node"],
+      "description": "Einzelne Baeume innerhalb von Obstgaerten/Streuobstwiesen werden gezaehlt und angezeigt.",
+      "doc_url": "https://wiki.openstreetmap.org/wiki/Tag:natural%3Dtree"
+    },
+    {
+      "key": "trees",
+      "object_types": ["area"],
+      "description": "Optionale Angabe der Baumart einer Streuobstwiese (z.B. apple_trees), wird im Detailbereich angezeigt.",
+      "doc_url": "https://wiki.openstreetmap.org/wiki/Key:trees"
+    }
+  ]
+}
