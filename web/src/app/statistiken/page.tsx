@@ -27,8 +27,16 @@ interface LaenderStats {
     laender: Bundesland[];
 }
 
+interface GenusCount {
+    genus: string;
+    genus_de?: string;
+    count: number;
+}
+
 interface GlobalStats {
     trees_count: number;
+    fruit_trees_count?: number;
+    genus_distribution?: GenusCount[];
 }
 
 const PRIMARY = '#754c82';
@@ -89,28 +97,35 @@ function useIsMobile(breakpoint = 640) {
 
 export default function StatistikenPage() {
     const [stats, setStats] = useState<LaenderStats | null>(null);
-    const [treesCount, setTreesCount] = useState<number | null>(null);
+    const [fruitTreesCount, setFruitTreesCount] = useState<number | null>(null);
+    const [genusDist, setGenusDist] = useState<GenusCount[]>([]);
     const [loading, setLoading] = useState(true);
     const [activeChart, setActiveChart] = useState<'count' | 'area'>('area');
     const isMobile = useIsMobile();
 
     useEffect(() => {
-        Promise.all([
-            fetch('/stats_laender.json').then((res) => {
+        // Bundesland statistics are the main content – the page renders based on
+        // these.
+        fetch('/stats_laender.json')
+            .then((res) => {
                 if (!res.ok) throw new Error('not ok');
                 return res.json() as Promise<LaenderStats>;
-            }),
-            fetch('/stats.json').then((res) => {
-                if (!res.ok) throw new Error('not ok');
-                return res.json() as Promise<GlobalStats>;
-            }),
-        ])
-            .then(([laender, global]) => {
-                setStats(laender);
-                setTreesCount(global.trees_count);
             })
+            .then((laender) => setStats(laender))
             .catch(() => setStats(null))
             .finally(() => setLoading(false));
+
+        // Tree-genus data is best-effort: on a fresh deploy stats.json may be
+        // missing or still use the old schema. Failure must not break the page;
+        // the "Bäume" section simply stays hidden (see hasTreeData).
+        fetch('/stats.json')
+            .then((res) => (res.ok ? (res.json() as Promise<GlobalStats>) : null))
+            .then((global) => {
+                if (!global) return;
+                setFruitTreesCount(global.fruit_trees_count ?? null);
+                setGenusDist(global.genus_distribution ?? []);
+            })
+            .catch(() => { /* no tree data available – section stays hidden */ });
     }, []);
 
     if (loading) {
@@ -156,6 +171,42 @@ export default function StatistikenPage() {
         return '#94a3b8';
     };
 
+    const genusTop = genusDist.slice(0, 15);
+    const genusTotal = genusDist.reduce((s, g) => s + g.count, 0);
+    const genusChartData = genusTop.map((g) => ({
+        name: g.genus,
+        nameDe: g.genus_de ?? '',
+        count: g.count,
+    }));
+    const genusDeByName: Record<string, string> = Object.fromEntries(
+        genusChartData.map((g) => [g.name, g.nameDe])
+    );
+
+    // The tree-genus data only exists once the data pipeline has run with this
+    // schema. On a fresh deploy the server's stats.json may still lack these
+    // fields – in that case hide the entire "Bäume" section instead of showing
+    // empty placeholder cards.
+    const hasTreeData = fruitTreesCount !== null || genusDist.length > 0;
+
+    // Y-axis tick: scientific genus + muted German name below it.
+    const renderGenusTick = (props: { x?: number; y?: number; payload?: { value: string } }) => {
+        const { x = 0, y = 0, payload } = props;
+        const value = payload?.value ?? '';
+        const de = genusDeByName[value];
+        return (
+            <g transform={`translate(${x},${y})`}>
+                <text x={-8} y={de ? -2 : 4} textAnchor="end" fontSize={12} fontWeight={600} fill="#475569">
+                    {value}
+                </text>
+                {de && (
+                    <text x={-8} y={11} textAnchor="end" fontSize={10} fill="#a1a1aa">
+                        {de}
+                    </text>
+                )}
+            </g>
+        );
+    };
+
     return (
         <main>
             {/* Hero */}
@@ -185,9 +236,13 @@ export default function StatistikenPage() {
                 </div>
             </section>
 
+            {/* ===================== WIESEN ===================== */}
             {/* Zusammenfassung */}
             <section className="px-4 py-8">
-                <div className="max-w-5xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="max-w-5xl mx-auto">
+                    <h2 className="text-2xl font-black text-secondary font-heading mb-5">Wiesen</h2>
+                </div>
+                <div className="max-w-5xl mx-auto grid grid-cols-1 sm:grid-cols-3 gap-4">
                     {/* Gesamtfläche */}
                     <div className="bg-white rounded-2xl p-6 shadow-sm border border-accent/10">
                         <div className="w-10 h-10 bg-accent/10 rounded-full flex items-center justify-center mb-3">
@@ -209,17 +264,6 @@ export default function StatistikenPage() {
                         </p>
                         <p className="text-sm font-semibold text-foreground mt-1">Wiesen gesamt</p>
                         <p className="text-xs text-gray-400">alle 16 Bundesländer</p>
-                    </div>
-                    {/* Bäume */}
-                    <div className="bg-white rounded-2xl p-6 shadow-sm border border-secondary/10">
-                        <div className="w-10 h-10 bg-secondary/10 rounded-full flex items-center justify-center mb-3">
-                            <TreePine className="w-5 h-5 text-secondary" />
-                        </div>
-                        <p className="text-3xl font-black text-secondary font-heading">
-                            {treesCount !== null ? formatNum(treesCount) : '–'}
-                        </p>
-                        <p className="text-sm font-semibold text-foreground mt-1">Bäume erfasst</p>
-                        <p className="text-xs text-gray-400">natural=tree in OSM</p>
                     </div>
                     {/* Top-Bundesland */}
                     <div className="bg-white rounded-2xl p-6 shadow-sm border border-secondary/10">
@@ -327,7 +371,7 @@ export default function StatistikenPage() {
             </section>
 
             {/* Detailtabelle */}
-            <section className="px-4 py-8 pb-16">
+            <section className="px-4 py-8">
                 <div className="max-w-5xl mx-auto bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                     <div className="px-6 py-5 border-b border-gray-100">
                         <h2 className="text-xl font-bold text-foreground font-heading">
@@ -422,6 +466,89 @@ export default function StatistikenPage() {
                     </div>
                 </div>
             </section>
+
+            {/* ===================== BÄUME ===================== */}
+            {hasTreeData && (
+            <section className="bg-background px-4 py-12 pb-16">
+                <div className="max-w-5xl mx-auto">
+                    <div className="flex items-center gap-3 mb-2">
+                        <div className="w-10 h-10 bg-secondary/10 rounded-full flex items-center justify-center">
+                            <TreePine className="w-5 h-5 text-secondary" />
+                        </div>
+                        <h2 className="text-2xl font-black text-secondary font-heading">Bäume</h2>
+                    </div>
+                    <p className="text-gray-600 mb-6 max-w-2xl">
+                        Obstbäume aus OpenStreetMap (<code className="font-mono text-sm">natural=tree</code>),
+                        anhand der Gattung erkannt – bundesweit, innerhalb und außerhalb von Streuobstwiesen.
+                    </p>
+
+                    {/* Kennzahlen */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+                        <div className="bg-white rounded-2xl p-6 shadow-sm border border-primary/10">
+                            <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center mb-3">
+                                <TreePine className="w-5 h-5 text-primary" />
+                            </div>
+                            <p className="text-3xl font-black text-primary font-heading">
+                                {fruitTreesCount !== null ? formatNum(fruitTreesCount) : '–'}
+                            </p>
+                            <p className="text-sm font-semibold text-foreground mt-1">Obstbäume erfasst</p>
+                            <p className="text-xs text-gray-400">bundesweit nach Gattung</p>
+                        </div>
+                        <div className="bg-white rounded-2xl p-6 shadow-sm border border-secondary/10">
+                            <div className="w-10 h-10 bg-secondary/10 rounded-full flex items-center justify-center mb-3">
+                                <TrendingUp className="w-5 h-5 text-secondary" />
+                            </div>
+                            <p className="text-3xl font-black text-secondary font-heading">
+                                {genusDist.length > 0 ? formatNum(genusDist.length) : '–'}
+                            </p>
+                            <p className="text-sm font-semibold text-foreground mt-1">Obstbaum-Gattungen</p>
+                            <p className="text-xs text-gray-400">verschiedene Gattungen</p>
+                        </div>
+                    </div>
+
+                    {/* Gattungen */}
+                    {genusChartData.length > 0 && (
+                        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8">
+                            <h3 className="text-xl font-bold text-foreground font-heading mb-2">
+                                Obstbäume nach Gattung
+                            </h3>
+                            <p className="text-sm text-gray-500 mb-6">
+                                Anzahl der erfassten Obstbäume je Gattung – inklusive der Bäume
+                                innerhalb von Streuobstwiesen. Schreibvarianten sind normalisiert
+                                zusammengefasst.
+                            </p>
+
+                            <ResponsiveContainer width="100%" height={genusChartData.length * 38 + 20}>
+                                <BarChart
+                                    data={genusChartData}
+                                    layout="vertical"
+                                    margin={{ top: 4, right: 56, left: 8, bottom: 4 }}
+                                >
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" horizontal={false} />
+                                    <XAxis
+                                        type="number"
+                                        tick={{ fontSize: 11, fill: '#64748b' }}
+                                        tickFormatter={(v) => v.toLocaleString('de-DE')}
+                                    />
+                                    <YAxis
+                                        type="category"
+                                        dataKey="name"
+                                        tick={renderGenusTick as never}
+                                        width={140}
+                                    />
+                                    <Tooltip content={<CustomTooltip unit="Obstbäume" />} cursor={{ fill: 'rgba(0,0,0,0.03)' }} />
+                                    <Bar dataKey="count" radius={[0, 6, 6, 0]}>
+                                        {genusChartData.map((_, index) => (
+                                            <Cell key={index} fill={barColor(index)} />
+                                        ))}
+                                    </Bar>
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+                    )}
+                </div>
+            </section>
+            )}
         </main>
     );
 }

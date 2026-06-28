@@ -19,6 +19,9 @@ import sqlite3
 from shapely.geometry import shape
 from shapely.ops import unary_union
 import geopandas as gpd
+import osmium
+
+from tree_genera import canonical_genus
 
 # Setup logging
 _log_dir = Path(__file__).parent / "logs"
@@ -54,7 +57,9 @@ class Config:
     TREES_OSM = "trees.osm.pbf"
     ORCHARDS_GEOJSON = "orchards.geojson"
     STREUOBSTWIESEN_GEOJSON = "streuobstwiesen.geojson"
-    TREES_GEOJSON = "trees.geojson"
+    TREES_GEOJSON = "trees.geojson"                 # Bäume innerhalb von Flächen
+    FRUIT_TREES_GEOJSON = "fruit_trees.geojson"     # Obstbäume bundesweit (Gattungsfilter)
+    BAEUME_GEOJSON = "baeume.geojson"               # gemergter, deduplizierter Baum-Layer
     COMBINED_GEOJSON = "all_streuobstwiesen.geojson"
     VECTOR_TILES = "streuobstwiesen.mbtiles"
     
@@ -283,6 +288,107 @@ def extract_trees_in_all_areas(germany_file: Path, orchards_file: Path, streuobs
     
     return success
 
+def extract_fruit_trees_geojson(germany_file: Path, output_file: Path) -> bool:
+    """Extract fruit trees (natural=tree with a fruit genus) from all of Germany.
+
+    Uses pyosmium to read every tree node directly (nodes carry their own
+    coordinates, so no location cache is needed). The genus is normalized to a
+    canonical scientific name via tree_genera.canonical_genus, which also matches
+    German names and fixes typos/case. Only configured fruit genera are kept.
+
+    Writes a GeoJSON FeatureCollection of points whose feature id / osm_id use the
+    same "n<id>" format that `osmium export --add-unique-id type_id` produces, so
+    the trees deduplicate cleanly against the in-area trees and keep working with
+    tippecanoe's --use-attribute-for-id and the map's promoteId.
+    """
+    logger.info("Extracting fruit trees from all of Germany (genus filter, normalized)")
+    features = []
+    total_trees = 0
+    try:
+        # Trees are nodes; restrict to nodes carrying a "natural" key.
+        processor = (osmium.FileProcessor(str(germany_file))
+                     .with_filter(osmium.filter.EntityFilter(osmium.osm.NODE))
+                     .with_filter(osmium.filter.KeyFilter("natural")))
+        for obj in processor:
+            tags = obj.tags
+            if tags.get("natural") != "tree":
+                continue
+            total_trees += 1
+            canon = canonical_genus(tags)
+            if not canon:
+                continue
+            loc = obj.location
+            if not loc.valid():
+                continue
+            props = {k: v for k, v in tags}
+            props["genus"] = canon  # normalisierte, kanonische Gattung
+            osm_id = f"n{obj.id}"
+            props["osm_id"] = osm_id
+            features.append({
+                "type": "Feature",
+                "id": osm_id,
+                "geometry": {"type": "Point", "coordinates": [loc.lon, loc.lat]},
+                "properties": props,
+            })
+
+        fc = {"type": "FeatureCollection", "features": features}
+        with open(output_file, "w") as f:
+            json.dump(fc, f, separators=(",", ":"))
+        logger.info(f"✅ Found {len(features):,} fruit trees among {total_trees:,} trees "
+                    f"→ {output_file.name}")
+        return True
+    except Exception as e:
+        logger.error(f"❌ Failed to extract fruit trees: {e}")
+        return False
+
+
+def merge_tree_geojsons(in_area_file: Path, fruit_file: Path, output_file: Path) -> bool:
+    """Merge in-area trees and country-wide fruit trees, deduplicated by osm_id.
+
+    A fruit tree located inside an orchard appears in BOTH inputs with the same
+    OSM node id, so it must be deduplicated. On conflict the fruit-tree variant
+    wins, keeping its normalized canonical genus. The result is the final
+    `baeume` layer = (all trees inside areas) ∪ (fruit trees country-wide).
+    """
+    try:
+        by_id = {}
+
+        def _key(feature):
+            return feature.get("properties", {}).get("osm_id") or feature.get("id")
+
+        in_area_count = 0
+        if in_area_file.exists():
+            with open(in_area_file, "r") as f:
+                for feature in json.load(f).get("features", []):
+                    # osmium export puts osm_id only in the top-level id; mirror it
+                    feature.setdefault("properties", {}).setdefault(
+                        "osm_id", feature.get("id"))
+                    by_id[_key(feature)] = feature
+                    in_area_count += 1
+
+        fruit_count = 0
+        overlap = 0
+        if fruit_file.exists():
+            with open(fruit_file, "r") as f:
+                for feature in json.load(f).get("features", []):
+                    k = _key(feature)
+                    if k in by_id:
+                        overlap += 1
+                    by_id[k] = feature  # fruit variant wins (normalized genus)
+                    fruit_count += 1
+
+        merged = {"type": "FeatureCollection", "features": list(by_id.values())}
+        with open(output_file, "w") as f:
+            json.dump(merged, f, separators=(",", ":"))
+
+        logger.info(f"✅ Merged baeume layer: {in_area_count:,} in-area + {fruit_count:,} "
+                    f"fruit − {overlap:,} overlap = {len(by_id):,} unique trees")
+        return True
+    except Exception as e:
+        logger.error(f"❌ Failed to merge tree GeoJSONs: {e}")
+        return False
+
+
 def convert_to_geojson(input_file: Path, output_file: Path, layer_name: str = None) -> bool:
     """Convert OSM PBF to GeoJSON using osmium export"""
     
@@ -380,9 +486,15 @@ def combine_geojson_files(orchards_file: Path, streuobstwiesen_file: Path, trees
         logger.error(f"❌ Failed to combine GeoJSON files: {e}")
         return False
 
-def generate_statistics(orchards_file: Path, streuobstwiesen_file: Path, trees_file: Path) -> dict:
-    """Generate statistics about orchards, streuobstwiesen, and trees"""
-    
+def generate_statistics(orchards_file: Path, streuobstwiesen_file: Path, trees_file: Path,
+                        fruit_trees_file: Path = None) -> dict:
+    """Generate statistics about orchards, streuobstwiesen, and trees.
+
+    trees_file is the merged baeume layer (in-area trees ∪ country-wide fruit
+    trees). fruit_trees_file, if given, contributes fruit_trees_count (the
+    country-wide fruit trees only).
+    """
+
     stats = {
         'orchards_count': 0,
         'orchards_area_ha': 0,
@@ -392,6 +504,8 @@ def generate_statistics(orchards_file: Path, streuobstwiesen_file: Path, trees_f
         'streuobstwiesen_area_ha': 0,
         'trees_count': 0,
         'trees_in_streuobstwiesen': 0,
+        'fruit_trees_count': 0,
+        'genus_distribution': [],
         'generated': datetime.now().isoformat()
     }
     
@@ -446,17 +560,39 @@ def generate_statistics(orchards_file: Path, streuobstwiesen_file: Path, trees_f
                 
                 stats['streuobstwiesen_area_ha'] = round(total_area_sqm / 10000, 2)
         
-        # Count trees
+        # Count trees in the merged baeume layer (map layer total).
         if trees_file.exists():
             with open(trees_file, 'r') as f:
                 trees_data = json.load(f)
                 stats['trees_count'] = len(trees_data.get('features', []))
-        
+
+        # Count country-wide fruit trees (Obstbäume, includes those inside areas)
+        # and build the genus distribution from them. Every fruit tree carries a
+        # normalized canonical genus, so this is a clean per-genus count of all
+        # Obstbäume (also those within Streuobstwiesen).
+        if fruit_trees_file and fruit_trees_file.exists():
+            from collections import Counter
+            from tree_genera import GERMAN_NAME
+            with open(fruit_trees_file, 'r') as f:
+                fruit_features = json.load(f).get('features', [])
+            stats['fruit_trees_count'] = len(fruit_features)
+
+            counts = Counter(
+                ft.get('properties', {}).get('genus')
+                for ft in fruit_features
+                if ft.get('properties', {}).get('genus')
+            )
+            stats['genus_distribution'] = [
+                {'genus': g, 'genus_de': GERMAN_NAME.get(g, ''), 'count': c}
+                for g, c in counts.most_common()
+            ]
+
         logger.info(f"📊 Statistics generated:")
         logger.info(f"   - Obstgärten: {stats['orchards_count']} ({stats['orchards_area_ha']} ha)")
         logger.info(f"   - davon orchard=meadow_orchard: {stats['orchard_meadow_count']} ({stats['orchard_meadow_area_ha']} ha)")
         logger.info(f"   - Streuobstwiesen: {stats['streuobstwiesen_count']} ({stats['streuobstwiesen_area_ha']} ha)")
-        logger.info(f"   - Bäume: {stats['trees_count']}")
+        logger.info(f"   - Bäume (gesamt): {stats['trees_count']}")
+        logger.info(f"   - davon Obstbäume bundesweit: {stats['fruit_trees_count']}")
         
         return stats
         
@@ -522,6 +658,8 @@ def export_stats_json(stats: dict, json_file: Path) -> bool:
             'streuobstwiesen_count': stats.get('streuobstwiesen_count', 0),
             'streuobstwiesen_area_ha': stats.get('streuobstwiesen_area_ha', 0),
             'trees_count': stats.get('trees_count', 0),
+            'fruit_trees_count': stats.get('fruit_trees_count', 0),
+            'genus_distribution': stats.get('genus_distribution', []),
             'total_area_ha': round(total_area, 2),
         }
         json_file.parent.mkdir(parents=True, exist_ok=True)
@@ -547,6 +685,7 @@ def append_stats_csv(stats: dict, csv_file: Path) -> bool:
             'streuobstwiesen_count',
             'streuobstwiesen_area_ha',
             'trees_count',
+            'fruit_trees_count',
             'total_area_ha',
         ]
 
@@ -567,6 +706,7 @@ def append_stats_csv(stats: dict, csv_file: Path) -> bool:
                 'streuobstwiesen_count': stats.get('streuobstwiesen_count', 0),
                 'streuobstwiesen_area_ha': stats.get('streuobstwiesen_area_ha', 0),
                 'trees_count': stats.get('trees_count', 0),
+                'fruit_trees_count': stats.get('fruit_trees_count', 0),
                 'total_area_ha': round(total_area, 2),
             })
 
@@ -800,6 +940,8 @@ def main(dry_run: bool = False):
     orchards_geojson = config.TEMP_DIR / config.ORCHARDS_GEOJSON
     streuobstwiesen_geojson = config.TEMP_DIR / config.STREUOBSTWIESEN_GEOJSON
     trees_geojson = config.TEMP_DIR / config.TREES_GEOJSON
+    fruit_trees_geojson = config.TEMP_DIR / config.FRUIT_TREES_GEOJSON
+    baeume_geojson = config.TEMP_DIR / config.BAEUME_GEOJSON
     combined_geojson = config.OUTPUT_DIR / config.COMBINED_GEOJSON
     vector_tiles = config.OUTPUT_DIR / config.VECTOR_TILES
     
@@ -846,19 +988,29 @@ def main(dry_run: bool = False):
             
             if not convert_to_geojson(trees_osm, trees_geojson, "points"):
                 raise Exception("Failed to convert trees to GeoJSON")
-        
+
+        # Step 5b: Extract fruit trees country-wide and merge into the baeume layer
+        logger.info("🍐 Step 5b: Extracting fruit trees country-wide and merging baeume layer")
+        if dry_run:
+            logger.info("   🧪 DRY RUN: Skipping fruit tree extraction/merge")
+        else:
+            if not extract_fruit_trees_geojson(germany_pbf, fruit_trees_geojson):
+                raise Exception("Failed to extract fruit trees")
+            if not merge_tree_geojsons(trees_geojson, fruit_trees_geojson, baeume_geojson):
+                raise Exception("Failed to merge tree GeoJSONs")
+
         # Step 6: Combine GeoJSON files
         logger.info("🔗 Step 6: Combining GeoJSON files")
         if dry_run:
             logger.info("   🧪 DRY RUN: Skipping GeoJSON combination")
-        elif not combine_geojson_files(orchards_geojson, streuobstwiesen_geojson, trees_geojson, combined_geojson):
+        elif not combine_geojson_files(orchards_geojson, streuobstwiesen_geojson, baeume_geojson, combined_geojson):
             raise Exception("Failed to combine GeoJSON files")
-        
+
         # Step 7: Create vector tiles
         logger.info("🗺️  Step 7: Creating vector tiles with three separate layers")
         if dry_run:
             logger.info("   🧪 DRY RUN: Skipping vector tile creation")
-        elif not create_vector_tiles(orchards_geojson, streuobstwiesen_geojson, trees_geojson, vector_tiles, config):
+        elif not create_vector_tiles(orchards_geojson, streuobstwiesen_geojson, baeume_geojson, vector_tiles, config):
             raise Exception("Failed to create vector tiles")
         
         # Success!
@@ -903,7 +1055,7 @@ def main(dry_run: bool = False):
 
             # Generate statistics
             logger.info("📈 Generating statistics...")
-            stats = generate_statistics(orchards_geojson, streuobstwiesen_geojson, trees_geojson)
+            stats = generate_statistics(orchards_geojson, streuobstwiesen_geojson, baeume_geojson, fruit_trees_geojson)
             if stats:
                 date_str = datetime.now().strftime('%Y-%m-%d')
                 dated_stats_file = config.OUTPUT_DIR / f"stats_{date_str}.txt"

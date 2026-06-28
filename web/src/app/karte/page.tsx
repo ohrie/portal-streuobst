@@ -954,7 +954,6 @@ export default function MapPage() {
           .setLngLat(coordinates)
           .setHTML(createOSMPopupHTML({
             title: 'Obstbaum',
-            description: 'Einzelner Obstbaum in der Streuobstwiese',
             osmId: osmId ? String(osmId) : undefined,
             showOSMTags: true,
             properties: propsObj ?? undefined,
