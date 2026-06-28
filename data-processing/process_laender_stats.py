@@ -176,7 +176,7 @@ def main() -> None:
         shutil.copy(OUTPUT_FILE, web_target)
         logger.info(f"Kopiert nach: {web_target}")
     else:
-        logger.warning(f"Web-public-Verzeichnis nicht gefunden: {WEB_PUBLIC_DIR}")
+        logger.warning(f"Web-public-Verzeichnis nicht gefunden (auf dem Server egal, nur fuer lokale Entwicklung relevant): {WEB_PUBLIC_DIR}")
 
     logger.info("Fertig!")
     for l in output["laender"]:
