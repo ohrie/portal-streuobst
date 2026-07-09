@@ -13,7 +13,8 @@
     "build": "next build",
     "start": "next start",
     "serve": "npx serve@latest out",
-    "lint": "eslint"
+    "lint": "biome check",
+    "format": "biome check --write"
   },
   "dependencies": {
     "@fontsource/epunda-slab": "^5.2.1",
@@ -32,15 +33,13 @@
     "recharts": "^3.8.1"
   },
   "devDependencies": {
-    "@eslint/eslintrc": "^3",
+    "@biomejs/biome": "2.5.3",
     "@tailwindcss/postcss": "^4",
     "@types/mapbox-gl": "^3.4.1",
     "@types/node": "^24",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "eslint": "^9",
-    "eslint-config-next": "^16.0.0",
     "tailwindcss": "^4.1.12",
-    "typescript": "^5"
+    "typescript": "^6.0.3"
   }
 }
