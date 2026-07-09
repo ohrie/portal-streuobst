@@ -1,4 +1,4 @@
-import { LucideIcon } from 'lucide-react';
+import type { LucideIcon } from "lucide-react";
 
 interface BentoCardProps {
   children: React.ReactNode;
@@ -9,9 +9,9 @@ interface BentoCardProps {
 
 export default function BentoCard({
   children,
-  className = '',
+  className = "",
   icon: Icon,
-  title
+  title,
 }: BentoCardProps) {
   return (
     <div className={`bento-item ${className}`}>
@@ -22,7 +22,11 @@ export default function BentoCard({
               <Icon className="w-8 h-8 text-background" />
             </div>
           )}
-          {title && <h3 className="text-2xl font-bold text-foreground font-heading">{title}</h3>}
+          {title && (
+            <h3 className="text-2xl font-bold text-foreground font-heading">
+              {title}
+            </h3>
+          )}
         </div>
       )}
       {children}

@@ -1,26 +1,23 @@
 import type { Metadata } from "next";
-import StandardLayout from '@/components/layouts/StandardLayout';
+import StandardLayout from "@/components/layouts/StandardLayout";
 
 export const metadata: Metadata = {
-    title: "Datenschutzerklärung",
-    description: "Datenschutzerklärung des Streuobstwiesen Portals – Informationen zur Verarbeitung personenbezogener Daten gemäß DSGVO.",
-    robots: {
-        index: false,
-        follow: false,
-    },
-    alternates: {
-        canonical: "/datenschutz",
-    },
+  title: "Datenschutzerklärung",
+  description:
+    "Datenschutzerklärung des Streuobstwiesen Portals – Informationen zur Verarbeitung personenbezogener Daten gemäß DSGVO.",
+  robots: {
+    index: false,
+    follow: false,
+  },
+  alternates: {
+    canonical: "/datenschutz",
+  },
 };
 
 export default function DatenschutzLayout({
-    children,
+  children,
 }: {
-    children: React.ReactNode;
+  children: React.ReactNode;
 }) {
-    return (
-        <StandardLayout>
-            {children}
-        </StandardLayout>
-    );
+  return <StandardLayout>{children}</StandardLayout>;
 }

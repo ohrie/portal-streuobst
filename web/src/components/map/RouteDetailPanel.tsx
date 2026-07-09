@@ -1,8 +1,17 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { ArrowLeft, ChevronLeft, ChevronRight, Download, ExternalLink, MoveDown, MoveUp, Ruler } from 'lucide-react';
-import type { RouteFeature } from '@/types/routes';
+import {
+  ArrowLeft,
+  ChevronLeft,
+  ChevronRight,
+  Download,
+  ExternalLink,
+  MoveDown,
+  MoveUp,
+  Ruler,
+} from "lucide-react";
+import { useState } from "react";
+import type { RouteFeature } from "@/types/routes";
 
 interface Props {
   route: RouteFeature;
@@ -10,32 +19,34 @@ interface Props {
 }
 
 function formatLength(meters: number | null): string {
-  if (meters == null) return '—';
-  return (meters / 1000).toLocaleString('de-DE', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + ' km';
+  if (meters == null) return "—";
+  return `${(meters / 1000).toLocaleString("de-DE", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} km`;
 }
 
 function formatElevation(meters: number | null): string {
-  if (meters == null) return '—';
-  return Math.round(meters).toLocaleString('de-DE') + ' m';
+  if (meters == null) return "—";
+  return `${Math.round(meters).toLocaleString("de-DE")} m`;
 }
 
 function downloadGpx(route: RouteFeature) {
   const trkpts = route.geometry
     .map(([lon, lat]) => `      <trkpt lat="${lat}" lon="${lon}"/>`)
-    .join('\n');
+    .join("\n");
   const gpx = `<?xml version="1.0" encoding="UTF-8"?>
 <gpx version="1.1" creator="Streuobst-Portal" xmlns="http://www.topografix.com/GPX/1/1">
   <trk>
-    <name>${route.name.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</name>
+    <name>${route.name.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")}</name>
     <trkseg>
 ${trkpts}
     </trkseg>
   </trk>
 </gpx>`;
-  const url = URL.createObjectURL(new Blob([gpx], { type: 'application/gpx+xml' }));
-  const a = document.createElement('a');
+  const url = URL.createObjectURL(
+    new Blob([gpx], { type: "application/gpx+xml" }),
+  );
+  const a = document.createElement("a");
   a.href = url;
-  a.download = route.name.replace(/[^a-zA-Z0-9äöüÄÖÜß\- ]/g, '_').trim() + '.gpx';
+  a.download = `${route.name.replace(/[^a-zA-Z0-9äöüÄÖÜß\- ]/g, "_").trim()}.gpx`;
   a.click();
   URL.revokeObjectURL(url);
 }
@@ -45,8 +56,14 @@ export default function RouteDetailPanel({ route, onClose }: Props) {
   const [imageLoaded, setImageLoaded] = useState(false);
   const images = route.image_urls ?? [];
 
-  const prevImage = () => { setImageLoaded(false); setImageIndex(i => (i - 1 + images.length) % images.length); };
-  const nextImage = () => { setImageLoaded(false); setImageIndex(i => (i + 1) % images.length); };
+  const prevImage = () => {
+    setImageLoaded(false);
+    setImageIndex((i) => (i - 1 + images.length) % images.length);
+  };
+  const nextImage = () => {
+    setImageLoaded(false);
+    setImageIndex((i) => (i + 1) % images.length);
+  };
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -60,27 +77,37 @@ export default function RouteDetailPanel({ route, onClose }: Props) {
           <ArrowLeft className="w-4 h-4" />
           Übersicht
         </button>
-        <h2 className="text-lg font-semibold text-gray-900 leading-snug">{route.name}</h2>
+        <h2 className="text-lg font-semibold text-gray-900 leading-snug">
+          {route.name}
+        </h2>
       </div>
 
       {/* Scrollable body */}
       <div className="flex-1 overflow-y-auto">
         {/* Stats row — only shown if at least one value is present */}
-        {(route.length_m != null || route.uphill_m != null || route.downhill_m != null) && (
+        {(route.length_m != null ||
+          route.uphill_m != null ||
+          route.downhill_m != null) && (
           <div className="grid grid-cols-3 gap-2 px-4 py-4 border-b border-gray-100">
             <div className="flex flex-col items-center gap-1 bg-gray-50 rounded-lg p-3">
               <Ruler className="w-4 h-4 text-gray-400" />
-              <span className="text-sm font-semibold text-gray-800">{formatLength(route.length_m)}</span>
+              <span className="text-sm font-semibold text-gray-800">
+                {formatLength(route.length_m)}
+              </span>
               <span className="text-xs text-gray-500">Länge</span>
             </div>
             <div className="flex flex-col items-center gap-1 bg-gray-50 rounded-lg p-3">
               <MoveUp className="w-4 h-4 text-gray-400" />
-              <span className="text-sm font-semibold text-gray-800">{formatElevation(route.uphill_m)}</span>
+              <span className="text-sm font-semibold text-gray-800">
+                {formatElevation(route.uphill_m)}
+              </span>
               <span className="text-xs text-gray-500">Aufstieg</span>
             </div>
             <div className="flex flex-col items-center gap-1 bg-gray-50 rounded-lg p-3">
               <MoveDown className="w-4 h-4 text-gray-400" />
-              <span className="text-sm font-semibold text-gray-800">{formatElevation(route.downhill_m)}</span>
+              <span className="text-sm font-semibold text-gray-800">
+                {formatElevation(route.downhill_m)}
+              </span>
               <span className="text-xs text-gray-500">Abstieg</span>
             </div>
           </div>
@@ -109,7 +136,7 @@ export default function RouteDetailPanel({ route, onClose }: Props) {
               key={images[imageIndex]}
               src={images[imageIndex]}
               alt={`${route.name} – Bild ${imageIndex + 1}`}
-              className={`w-full h-full object-cover transition-opacity duration-300 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
+              className={`w-full h-full object-cover transition-opacity duration-300 ${imageLoaded ? "opacity-100" : "opacity-0"}`}
               loading="lazy"
               onLoad={() => setImageLoaded(true)}
             />
@@ -167,7 +194,12 @@ export default function RouteDetailPanel({ route, onClose }: Props) {
           <div>
             <span className="font-medium text-gray-600">Quelle: </span>
             {route.publisher_url ? (
-              <a href={route.publisher_url} target="_blank" rel="noopener noreferrer" className="hover:underline">
+              <a
+                href={route.publisher_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:underline"
+              >
                 {route.publisher_name}
               </a>
             ) : (
@@ -178,7 +210,12 @@ export default function RouteDetailPanel({ route, onClose }: Props) {
             <div>
               <span className="font-medium text-gray-600">Lizenz: </span>
               {route.license_url ? (
-                <a href={route.license_url} target="_blank" rel="noopener noreferrer" className="hover:underline">
+                <a
+                  href={route.license_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:underline"
+                >
                   {route.license}
                 </a>
               ) : (

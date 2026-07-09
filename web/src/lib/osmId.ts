@@ -10,10 +10,10 @@ export function osmIdToJosmObject(osmId: string): string | null {
   if (!osmId) return null;
   const type = osmId[0];
   const num = parseInt(osmId.slice(1), 10);
-  if (isNaN(num)) return null;
+  if (Number.isNaN(num)) return null;
 
-  if (type === 'n') return `n${num}`;
-  if (type === 'w') return `w${num}`;
-  if (type === 'a') return num % 2 === 0 ? `w${num / 2}` : `r${(num - 1) / 2}`;
+  if (type === "n") return `n${num}`;
+  if (type === "w") return `w${num}`;
+  if (type === "a") return num % 2 === 0 ? `w${num / 2}` : `r${(num - 1) / 2}`;
   return null;
 }

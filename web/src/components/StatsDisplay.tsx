@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { Map, Database } from 'lucide-react';
-import Link from 'next/link';
+import { Database, Map } from "lucide-react";
+import Link from "next/link";
+import { useEffect, useState } from "react";
 
 interface Stats {
   date: string;
@@ -11,20 +11,20 @@ interface Stats {
 }
 
 const FALLBACK: Stats = {
-  date: '',
+  date: "",
   orchards_count: 102150,
   total_area_ha: 202250.53,
 };
 
 function formatDate(iso: string): string {
   try {
-    return new Date(iso).toLocaleDateString('de-DE', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
+    return new Date(iso).toLocaleDateString("de-DE", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
     });
   } catch {
-    return '';
+    return "";
   }
 }
 
@@ -34,12 +34,12 @@ function Skeleton() {
 
 export default function StatsDisplay() {
   const [stats, setStats] = useState<Stats | null>(null);
-  const [date, setDate] = useState('');
+  const [date, setDate] = useState("");
 
   useEffect(() => {
-    fetch('/stats.json')
+    fetch("/stats.json")
       .then((res) => {
-        if (!res.ok) throw new Error('not ok');
+        if (!res.ok) throw new Error("not ok");
         return res.json();
       })
       .then((data: Stats) => {
@@ -52,7 +52,10 @@ export default function StatsDisplay() {
   }, []);
 
   return (
-    <Link href="/statistiken" className="block max-w-6xl mx-auto mt-12 px-4 group">
+    <Link
+      href="/statistiken"
+      className="block max-w-6xl mx-auto mt-12 px-4 group"
+    >
       <div className="grid md:grid-cols-2 gap-6">
         {/* Obstgärten insgesamt */}
         <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-8 shadow-lg border-2 border-primary/20 group-hover:border-primary/50 transition-colors">
@@ -65,13 +68,17 @@ export default function StatsDisplay() {
                 <Skeleton />
               ) : (
                 <p className="text-4xl md:text-5xl font-black text-primary font-heading">
-                  {stats.orchards_count.toLocaleString('de-DE')}
+                  {stats.orchards_count.toLocaleString("de-DE")}
                 </p>
               )}
             </div>
           </div>
-          <p className="text-lg font-semibold text-foreground">Obstgärten insgesamt</p>
-          <p className="text-sm text-gray-600 mt-1">Bereits in OpenStreetMap erfasst</p>
+          <p className="text-lg font-semibold text-foreground">
+            Obstgärten insgesamt
+          </p>
+          <p className="text-sm text-gray-600 mt-1">
+            Bereits in OpenStreetMap erfasst
+          </p>
         </div>
 
         {/* Erfasste Fläche */}
@@ -85,13 +92,17 @@ export default function StatsDisplay() {
                 <Skeleton />
               ) : (
                 <p className="text-4xl md:text-5xl font-black text-accent font-heading">
-                  {Math.round(stats.total_area_ha).toLocaleString('de-DE')}
+                  {Math.round(stats.total_area_ha).toLocaleString("de-DE")}
                 </p>
               )}
             </div>
           </div>
-          <p className="text-lg font-semibold text-foreground">Hektar erfasst</p>
-          <p className="text-sm text-gray-600 mt-1">Obstgärten-Gesamtfläche in OpenStreetMap</p>
+          <p className="text-lg font-semibold text-foreground">
+            Hektar erfasst
+          </p>
+          <p className="text-sm text-gray-600 mt-1">
+            Obstgärten-Gesamtfläche in OpenStreetMap
+          </p>
         </div>
       </div>
       {date && (

@@ -5,9 +5,9 @@
  * dem IndexedDB-Cache (treeDetectionCache) nachgeladen.
  */
 
-import type { SelectedFeature } from '@/lib/geoArea';
+import type { SelectedFeature } from "@/lib/geoArea";
 
-const KEY = 'measure-session-v1';
+const KEY = "measure-session-v1";
 
 export interface MeasureSession {
   features: SelectedFeature[];
@@ -18,7 +18,10 @@ export function saveMeasureSession(features: SelectedFeature[]): void {
     if (features.length === 0) {
       localStorage.removeItem(KEY);
     } else {
-      localStorage.setItem(KEY, JSON.stringify({ features } satisfies MeasureSession));
+      localStorage.setItem(
+        KEY,
+        JSON.stringify({ features } satisfies MeasureSession),
+      );
     }
   } catch {
     // localStorage nicht verfügbar oder voll – stilles Fallback

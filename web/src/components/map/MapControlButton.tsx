@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 declare global {
   interface Window {
@@ -25,9 +25,11 @@ export default function MapControlButton({
   children,
   eventName,
 }: MapControlButtonProps) {
-  const size = 'w-[52px] h-[52px]';
-  const padding = 'p-1.5';
-  const border = isActive ? 'border-primary ring-2 ring-primary/30' : 'border-gray-200';
+  const size = "w-[52px] h-[52px]";
+  const padding = "p-1.5";
+  const border = isActive
+    ? "border-primary ring-2 ring-primary/30"
+    : "border-gray-200";
 
   const handleClick = () => {
     if (eventName) window.umami?.track(eventName);
@@ -43,7 +45,11 @@ export default function MapControlButton({
       className={`bg-white hover:bg-gray-50 rounded-lg shadow-lg border ${border} transition-all duration-200 hover:shadow-xl flex flex-col items-center justify-center ${padding} gap-1 group cursor-pointer ${size}`}
     >
       {children}
-      <span className={`text-xs font-medium ${isActive ? 'text-primary' : 'text-gray-700'}`}>{label}</span>
+      <span
+        className={`text-xs font-medium ${isActive ? "text-primary" : "text-gray-700"}`}
+      >
+        {label}
+      </span>
     </button>
   );
 }

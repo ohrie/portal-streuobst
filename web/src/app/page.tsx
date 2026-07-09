@@ -1,10 +1,21 @@
-import Link from 'next/link';
-import Image from 'next/image';
-import { ArrowRight, Map, Database, Info, TreePine, Eye, Network, BookOpen, MapPin, Mail } from 'lucide-react';
-import Button from '@/components/Button';
-import BentoCard from '@/components/BentoCard';
-import StandardLayout from '@/components/layouts/StandardLayout';
-import StatsDisplay from '@/components/StatsDisplay';
+import {
+  ArrowRight,
+  BookOpen,
+  Database,
+  Eye,
+  Info,
+  Mail,
+  Map,
+  MapPin,
+  Network,
+  TreePine,
+} from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
+import BentoCard from "@/components/BentoCard";
+import Button from "@/components/Button";
+import StandardLayout from "@/components/layouts/StandardLayout";
+import StatsDisplay from "@/components/StatsDisplay";
 
 export default function Home() {
   return (
@@ -70,7 +81,8 @@ export default function Home() {
                 Was bietet das Portal?
               </h2>
               <p className="text-lg text-foreground/70 max-w-2xl mx-auto">
-                Drei Werkzeuge für Streuobstwiesen – von der Übersicht bis zur detaillierten Analyse.
+                Drei Werkzeuge für Streuobstwiesen – von der Übersicht bis zur
+                detaillierten Analyse.
               </p>
             </div>
 
@@ -89,10 +101,14 @@ export default function Home() {
                 <div className="p-6">
                   <div className="flex items-center gap-2 mb-3">
                     <Map className="w-5 h-5 text-tertiary flex-none" />
-                    <h3 className="text-xl font-bold text-foreground font-heading">Streuobstwiesen Karte</h3>
+                    <h3 className="text-xl font-bold text-foreground font-heading">
+                      Streuobstwiesen Karte
+                    </h3>
                   </div>
                   <p className="text-sm text-foreground/70 leading-relaxed">
-                    Detaillierte, interaktive Karte aller Streuobstwiesen und Obstbäume in Deutschland – basierend auf OpenStreetMap-Daten.
+                    Detaillierte, interaktive Karte aller Streuobstwiesen und
+                    Obstbäume in Deutschland – basierend auf
+                    OpenStreetMap-Daten.
                   </p>
                 </div>
               </div>
@@ -114,10 +130,13 @@ export default function Home() {
                 <div className="p-6">
                   <div className="flex items-center gap-2 mb-3">
                     <Eye className="w-5 h-5 text-primary flex-none" />
-                    <h3 className="text-xl font-bold text-foreground font-heading">Automatische Baumzählung</h3>
+                    <h3 className="text-xl font-bold text-foreground font-heading">
+                      Automatische Baumzählung
+                    </h3>
                   </div>
                   <p className="text-sm text-foreground/70 leading-relaxed mb-3">
-                    KI-unterstützte Erkennung und Zählung einzelner Obstbäume auf Streuobstwiesen aus Geländemodellen.
+                    KI-unterstützte Erkennung und Zählung einzelner Obstbäume
+                    auf Streuobstwiesen aus Geländemodellen.
                   </p>
                   <span className="inline-block text-xs text-primary/80 bg-primary/10 px-2.5 py-1 rounded-full font-medium">
                     Nur Baden-Württemberg & Bayern
@@ -139,10 +158,14 @@ export default function Home() {
                 <div className="p-6">
                   <div className="flex items-center gap-2 mb-3">
                     <MapPin className="w-5 h-5 text-accent flex-none" />
-                    <h3 className="text-xl font-bold text-foreground font-heading">Streuobst Routen</h3>
+                    <h3 className="text-xl font-bold text-foreground font-heading">
+                      Streuobst Routen
+                    </h3>
                   </div>
                   <p className="text-sm text-foreground/70 leading-relaxed">
-                    Ausgewählte Fahrrad- und Wanderrouten entlang von Streuobstwiesen – für Erkundungstouren durch die Kulturlandschaft.
+                    Ausgewählte Fahrrad- und Wanderrouten entlang von
+                    Streuobstwiesen – für Erkundungstouren durch die
+                    Kulturlandschaft.
                   </p>
                 </div>
               </div>
@@ -158,8 +181,9 @@ export default function Home() {
                 Worum geht&apos;s hier?
               </h2>
               <p className="text-lg text-foreground/80 max-w-3xl mx-auto leading-relaxed">
-                Diese Plattform ist dein zentraler Einstiegspunkt in die Welt der Streuobstwiesen –
-                egal ob du Neuling bist oder bereits Erfahrung hast.
+                Diese Plattform ist dein zentraler Einstiegspunkt in die Welt
+                der Streuobstwiesen – egal ob du Neuling bist oder bereits
+                Erfahrung hast.
               </p>
             </div>
 
@@ -173,7 +197,9 @@ export default function Home() {
                   Einstieg für Neulinge
                 </h3>
                 <p className="text-sm text-foreground/70 leading-relaxed">
-                  Du möchtest Anfangen eine Streuobstwiese zu bewirtschaften oder hast eine geerbt und fragst dich, was du jetzt machst? Wir geben dir einen Überblick.
+                  Du möchtest Anfangen eine Streuobstwiese zu bewirtschaften
+                  oder hast eine geerbt und fragst dich, was du jetzt machst?
+                  Wir geben dir einen Überblick.
                 </p>
               </div>
 
@@ -186,8 +212,8 @@ export default function Home() {
                   Interaktive Karte
                 </h3>
                 <p className="text-sm text-foreground/70 leading-relaxed">
-                  Visualisierung wo Streuobstwiesen in Deutschland konzentriert sind
-                  und wo noch Potenzial besteht.
+                  Visualisierung wo Streuobstwiesen in Deutschland konzentriert
+                  sind und wo noch Potenzial besteht.
                 </p>
               </div>
 
@@ -227,9 +253,11 @@ export default function Home() {
                 Gemeinsam für den Erhalt unserer Kulturlandschaft
               </h3>
               <p className="text-foreground/80 leading-relaxed max-w-2xl mx-auto">
-                Streuobstwiesen sind nicht nur ökologisch wertvoll, sondern auch ein wichtiger Teil
-                unserer Kulturgeschichte. Diese Plattform soll alle zusammen bringen, die sich für ihren
-                Erhalt einsetzen – von Privatpersonen bis hin zu großen Naturschutzorganisationen.
+                Streuobstwiesen sind nicht nur ökologisch wertvoll, sondern auch
+                ein wichtiger Teil unserer Kulturgeschichte. Diese Plattform
+                soll alle zusammen bringen, die sich für ihren Erhalt einsetzen
+                – von Privatpersonen bis hin zu großen
+                Naturschutzorganisationen.
               </p>
             </div>
           </div>
@@ -244,10 +272,13 @@ export default function Home() {
 
             <div className="bento-grid">
               {/* Large Map Card - spans full width on mobile, 2 cols on larger screens */}
-              <BentoCard className=" bg-secondary text-secondary" icon={Map} title="Interaktive Karte">
+              <BentoCard
+                className=" bg-secondary text-secondary"
+                icon={Map}
+                title="Interaktive Karte"
+              >
                 <p className="text-lg mb-6">
                   Erkunde über 100.000 Obstgärten in ganz Deutschland.
-
                 </p>
                 <Button href="/karte/" variant="primary" icon={Map}>
                   Karte öffnen
@@ -258,7 +289,8 @@ export default function Home() {
               {/* Info Card */}
               <BentoCard icon={Info} title="Was sind Streuobstwiesen?">
                 <p className="text-foreground mb-6">
-                  Erfahre mehr über die Bedeutung und den ökologischen Wert von Streuobstwiesen.
+                  Erfahre mehr über die Bedeutung und den ökologischen Wert von
+                  Streuobstwiesen.
                 </p>
                 <Button href="/ueber/" variant="outline">
                   Mehr erfahren <ArrowRight className="w-4 h-4" />
@@ -268,24 +300,24 @@ export default function Home() {
               {/* Bewirtschaftung Card */}
               <BentoCard icon={TreePine} title="Bewirtschaftung lernen">
                 <p className="text-foreground mb-6">
-                  Du hast eine Streuobstwiese geerbt oder möchtest eine bewirtschaften? Hier findest du Hilfe!
+                  Du hast eine Streuobstwiese geerbt oder möchtest eine
+                  bewirtschaften? Hier findest du Hilfe!
                 </p>
                 <Button href="/bewirtschaftung/" variant="outline">
                   Ratgeber öffnen <ArrowRight className="w-4 h-4" />
                 </Button>
               </BentoCard>
 
-
               {/* Data Card */}
               <BentoCard icon={Database} title="Daten & Mitmachen">
                 <p className="text-foreground mb-6">
-                  Alle Daten basieren auf OpenStreetMap. Lerne, wie du selbst Streuobstwiesen kartieren kannst.
+                  Alle Daten basieren auf OpenStreetMap. Lerne, wie du selbst
+                  Streuobstwiesen kartieren kannst.
                 </p>
                 <Button href="/data/" variant="outline">
                   Mitmachen <ArrowRight className="w-4 h-4" />
                 </Button>
               </BentoCard>
-
             </div>
           </div>
         </section>
@@ -293,9 +325,19 @@ export default function Home() {
         {/* Mitgestaltung Block */}
         <section className="py-20 px-4 bg-secondary/10">
           <div className="max-w-4xl mx-auto">
-            <h2 className="text-3xl font-bold text-foreground mb-6 font-heading text-center">Mitgestaltung</h2>
+            <h2 className="text-3xl font-bold text-foreground mb-6 font-heading text-center">
+              Mitgestaltung
+            </h2>
             <p className="text-foreground/80 leading-relaxed text-lg">
-              Ob im Code, bei Daten oder mit eigenen Streuobstwiesen vor Ort: Das Streuobst Portal ist offen für Menschen und Organisationen, die sich einbringen möchten. Besonders OGVs und weitere Initiativen können gemeinsam mit uns daran arbeiten, Streuobstwiesen in ganz Deutschland sichtbarer zu machen — etwa, indem eigene Flächen, Projekte und regionale Informationen auf der Plattform und der Karte erscheinen. Wenn du oder ihr Interesse an einer Zusammenarbeit habt, meldet euch gerne und wir bringen die Streuobstwiesen in das digitale Zeitalter.
+              Ob im Code, bei Daten oder mit eigenen Streuobstwiesen vor Ort:
+              Das Streuobst Portal ist offen für Menschen und Organisationen,
+              die sich einbringen möchten. Besonders OGVs und weitere
+              Initiativen können gemeinsam mit uns daran arbeiten,
+              Streuobstwiesen in ganz Deutschland sichtbarer zu machen — etwa,
+              indem eigene Flächen, Projekte und regionale Informationen auf der
+              Plattform und der Karte erscheinen. Wenn du oder ihr Interesse an
+              einer Zusammenarbeit habt, meldet euch gerne und wir bringen die
+              Streuobstwiesen in das digitale Zeitalter.
             </p>
             <div className="mt-8 text-center">
               <Button href="mailto:hallo@portal-streuobst.de" icon={Mail}>
@@ -326,9 +368,10 @@ export default function Home() {
                   </h2>
                   <p className="text-foreground/80 leading-relaxed mb-6">
                     Unsere Baum-Patenschaften helfen Streuobstwiesen im
-                    baden-württembergischen Jagsttal zu erhalten. Wir lieben unsere Heimat und
-                    möchten die biologisch Vielfältigkeit der Wiesen erhalten und ausbauen.
-                    Dafür pflanzen wir neue Bäume und stellen leckeren Apfelmus und Cider her.
+                    baden-württembergischen Jagsttal zu erhalten. Wir lieben
+                    unsere Heimat und möchten die biologisch Vielfältigkeit der
+                    Wiesen erhalten und ausbauen. Dafür pflanzen wir neue Bäume
+                    und stellen leckeren Apfelmus und Cider her.
                   </p>
                   <a
                     href="https://www.japfel.de"
@@ -337,8 +380,18 @@ export default function Home() {
                     className="inline-flex items-center gap-2 bg-secondary hover:bg-secondary/90 text-background px-6 py-3 rounded-lg font-semibold transition-all duration-200"
                   >
                     Mehr über Japfel erfahren
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                      />
                     </svg>
                   </a>
                 </div>
@@ -346,7 +399,6 @@ export default function Home() {
             </div>
           </div>
         </section>
-
       </div>
     </StandardLayout>
   );

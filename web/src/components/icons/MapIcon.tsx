@@ -1,4 +1,4 @@
-export default function MapIcon({ className = '' }: { className?: string }) {
+export default function MapIcon({ className = "" }: { className?: string }) {
   return (
     <svg
       className={className}

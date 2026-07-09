@@ -1,5 +1,6 @@
+import { execSync } from "node:child_process";
 import type { NextConfig } from "next";
-import { execSync } from "child_process";
+
 let gitSha = process.env.GIT_SHA ?? "";
 if (!gitSha) {
   try {
@@ -13,7 +14,7 @@ const nextConfig: NextConfig = {
   env: {
     NEXT_PUBLIC_GIT_SHA: gitSha,
   },
-  output: 'export',
+  output: "export",
   trailingSlash: true,
   images: { unoptimized: true },
 
@@ -21,8 +22,8 @@ const nextConfig: NextConfig = {
   async rewrites() {
     return [
       {
-        source: '/api/:path*',
-        destination: 'http://localhost:8000/api/:path*',
+        source: "/api/:path*",
+        destination: "http://localhost:8000/api/:path*",
       },
     ];
   },

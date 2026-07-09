@@ -1,4 +1,8 @@
-export default function SatelliteIcon({ className = '' }: { className?: string }) {
+export default function SatelliteIcon({
+  className = "",
+}: {
+  className?: string;
+}) {
   return (
     <svg
       className={className}

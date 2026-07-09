@@ -1,23 +1,21 @@
 import type { Metadata } from "next";
-import StandardLayout from '@/components/layouts/StandardLayout';
+import StandardLayout from "@/components/layouts/StandardLayout";
 
 export const metadata: Metadata = {
-    title: "Was sind Streuobstwiesen?",
-    description: "Erfahre alles über Streuobstwiesen: ihre Bedeutung für Artenvielfalt, Klima und Kulturlandschaft in Deutschland. Hochstamm-Obstbäume und ihre ökologische Rolle.",
-    keywords: "Streuobstwiesen Bedeutung, Hochstamm Obstbäume, Artenvielfalt, Kulturlandschaft, Obstwiesen Ökologie",
-    alternates: {
-        canonical: "/ueber",
-    },
+  title: "Was sind Streuobstwiesen?",
+  description:
+    "Erfahre alles über Streuobstwiesen: ihre Bedeutung für Artenvielfalt, Klima und Kulturlandschaft in Deutschland. Hochstamm-Obstbäume und ihre ökologische Rolle.",
+  keywords:
+    "Streuobstwiesen Bedeutung, Hochstamm Obstbäume, Artenvielfalt, Kulturlandschaft, Obstwiesen Ökologie",
+  alternates: {
+    canonical: "/ueber",
+  },
 };
 
 export default function AboutLayout({
-    children,
+  children,
 }: {
-    children: React.ReactNode;
+  children: React.ReactNode;
 }) {
-    return (
-        <StandardLayout>
-            {children}
-        </StandardLayout>
-    );
+  return <StandardLayout>{children}</StandardLayout>;
 }

@@ -4,10 +4,10 @@
   --color-primary: #754c82;
   --color-secondary: #465902;
   --color-tertiary: #667302;
-  --color-accent: #D9BC2B;
-  --color-light: #F2DC9B;
-  --color-accent-hover: #C5A826;
-  --color-accent-dark: #B19821;
+  --color-accent: #d9bc2b;
+  --color-light: #f2dc9b;
+  --color-accent-hover: #c5a826;
+  --color-accent-dark: #b19821;
   --color-background: #faf4e1;
   --color-foreground: #465902;
 
@@ -28,7 +28,9 @@ body {
 body {
   background: var(--color-background);
   color: var(--color-foreground);
-  font-family: var(--font-family-body), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family:
+    var(--font-family-body), -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
 }
 
 /* Headings use Arbutus Slab */
@@ -43,7 +45,9 @@ h6 {
 
 /* MapLibre GL styles */
 .maplibregl-map {
-  font-family: var(--font-family-body), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family:
+    var(--font-family-body), -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
 }
 
 .maplibregl-popup-content {
@@ -70,13 +74,33 @@ h6 {
 }
 
 /* Markdown-rendered description in route detail panel */
-.route-description p { margin-bottom: 0.5rem; }
-.route-description ul, .route-description ol { margin: 0.5rem 0 0.5rem 1.25rem; }
-.route-description li { margin-bottom: 0.125rem; }
-.route-description h1, .route-description h2, .route-description h3 { font-size: 0.9rem; font-weight: 600; margin: 0.75rem 0 0.25rem; }
-.route-description strong { font-weight: 600; }
-.route-description em { font-style: italic; }
-.route-description a { color: var(--color-primary); text-decoration: underline; }
+.route-description p {
+  margin-bottom: 0.5rem;
+}
+.route-description ul,
+.route-description ol {
+  margin: 0.5rem 0 0.5rem 1.25rem;
+}
+.route-description li {
+  margin-bottom: 0.125rem;
+}
+.route-description h1,
+.route-description h2,
+.route-description h3 {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin: 0.75rem 0 0.25rem;
+}
+.route-description strong {
+  font-weight: 600;
+}
+.route-description em {
+  font-style: italic;
+}
+.route-description a {
+  color: var(--color-primary);
+  text-decoration: underline;
+}
 
 /* Bento Grid Layout - no borders, centered content */
 .bento-grid {

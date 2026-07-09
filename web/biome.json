@@ -6,7 +6,7 @@
     "useIgnoreFile": false
   },
   "files": {
-    "includes": ["**", "!.next/**", "!out/**", "!build/**", "!next-env.d.ts"]
+    "includes": ["**", "!.next", "!out", "!build", "!next-env.d.ts"]
   },
   "formatter": {
     "enabled": true,
@@ -16,7 +16,13 @@
   "linter": {
     "enabled": true,
     "rules": {
-      "recommended": true
+      "recommended": true,
+      "complexity": {
+        "useOptionalChain": {
+          "level": "warn",
+          "fix": "none"
+        }
+      }
     },
     "domains": {
       "next": "recommended",
@@ -26,6 +32,11 @@
   "javascript": {
     "formatter": {
       "quoteStyle": "double"
+    }
+  },
+  "css": {
+    "parser": {
+      "tailwindDirectives": true
     }
   },
   "assist": {

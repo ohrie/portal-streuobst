@@ -1,13 +1,11 @@
-import { Leaf, Heart, Globe, Users, TreePine } from 'lucide-react';
-import BentoCard from '@/components/BentoCard';
-import Section from '@/components/Section';
-import Button from '@/components/Button';
-import ButtonLink from '@/components/ButtonLink';
+import { Globe, Heart, Leaf, TreePine, Users } from "lucide-react";
+import BentoCard from "@/components/BentoCard";
+import Button from "@/components/Button";
+import Section from "@/components/Section";
 
 export default function AboutPage() {
   return (
     <div className="bg-background">
-
       {/* Hero Section */}
       <Section className="pt-20 px-4">
         <h1 className="text-5xl md:text-6xl font-bold text-primary font-heading">
@@ -17,7 +15,8 @@ export default function AboutPage() {
         </h1>
 
         <p className="text-xl md:text-2xl text-foreground mb-12 max-w-3xl mx-auto">
-          Entdecke die faszinierende Welt traditioneller Obstkultur und ihre Bedeutung für unsere Umwelt.
+          Entdecke die faszinierende Welt traditioneller Obstkultur und ihre
+          Bedeutung für unsere Umwelt.
         </p>
       </Section>
 
@@ -26,10 +25,15 @@ export default function AboutPage() {
         <div className="bento-grid">
           <BentoCard icon={Leaf} title="Definition">
             <p className="text-foreground mb-4">
-              Streuobstwiesen sind traditionelle Formen des Obstbaus mit <strong>hochstämmigen Obstbäumen</strong> in weiträumigen Abständen. Die Fläche wird extensiv bewirtschaftet und das Grünland unter den Bäumen als Wiese oder Weide genutzt.
+              Streuobstwiesen sind traditionelle Formen des Obstbaus mit{" "}
+              <strong>hochstämmigen Obstbäumen</strong> in weiträumigen
+              Abständen. Die Fläche wird extensiv bewirtschaftet und das
+              Grünland unter den Bäumen als Wiese oder Weide genutzt.
             </p>
             <p className="text-foreground">
-              Der Name "Streuobst" leitet sich von der "gestreuten" Anordnung der Bäume ab, im Gegensatz zu den dichten Reihen moderner Niederstamm-Plantagen.
+              Der Name "Streuobst" leitet sich von der "gestreuten" Anordnung
+              der Bäume ab, im Gegensatz zu den dichten Reihen moderner
+              Niederstamm-Plantagen.
             </p>
           </BentoCard>
 
@@ -45,7 +49,9 @@ export default function AboutPage() {
 
           <BentoCard icon={Heart} title="Ökologische Bedeutung">
             <p className="text-foreground mb-4">
-              Streuobstwiesen gehören zu den artenreichsten Lebensräumen Mitteleuropas. Sie bieten Lebensraum für über 5.000 Tier- und Pflanzenarten.
+              Streuobstwiesen gehören zu den artenreichsten Lebensräumen
+              Mitteleuropas. Sie bieten Lebensraum für über 5.000 Tier- und
+              Pflanzenarten.
             </p>
             <ul className="text-foreground text-left space-y-2 mb-4">
               <li>• Brutplätze für seltene Vogelarten</li>
@@ -57,19 +63,25 @@ export default function AboutPage() {
 
           <BentoCard icon={Globe} title="Kulturelle Bedeutung">
             <p className="text-foreground mb-4">
-              Streuobstwiesen sind lebendiges Kulturerbe und Zeugnis traditioneller Landwirtschaft. Sie bewahren alte Obstsorten, die genetische Vielfalt und lokales Wissen.
+              Streuobstwiesen sind lebendiges Kulturerbe und Zeugnis
+              traditioneller Landwirtschaft. Sie bewahren alte Obstsorten, die
+              genetische Vielfalt und lokales Wissen.
             </p>
             <p className="text-foreground">
-              Viele der über 2.000 regionalen Apfelsorten wären ohne Streuobstwiesen bereits verschwunden.
+              Viele der über 2.000 regionalen Apfelsorten wären ohne
+              Streuobstwiesen bereits verschwunden.
             </p>
           </BentoCard>
 
           <BentoCard icon={Users} title="Bedrohung & Schutz">
             <p className="text-foreground mb-4">
-              Seit den 1950er Jahren sind etwa 80% der Streuobstwiesen verschwunden. Intensivierung der Landwirtschaft, Siedlungsbau und mangelnde Pflege sind die Hauptursachen.
+              Seit den 1950er Jahren sind etwa 80% der Streuobstwiesen
+              verschwunden. Intensivierung der Landwirtschaft, Siedlungsbau und
+              mangelnde Pflege sind die Hauptursachen.
             </p>
             <p className="text-foreground">
-              Heute bemühen sich Naturschutzorganisationen, Kommunen und Bürger gemeinsam um den Erhalt dieses wertvollen Lebensraums.
+              Heute bemühen sich Naturschutzorganisationen, Kommunen und Bürger
+              gemeinsam um den Erhalt dieses wertvollen Lebensraums.
             </p>
           </BentoCard>
         </div>
@@ -103,7 +115,8 @@ export default function AboutPage() {
           Werde aktiv für Streuobstwiesen
         </h2>
         <p className="text-xl text-foreground mb-12 max-w-2xl mx-auto">
-          Hilf dabei, dieses wertvolle Kulturgut zu erhalten und für zukünftige Generationen zu bewahren.
+          Hilf dabei, dieses wertvolle Kulturgut zu erhalten und für zukünftige
+          Generationen zu bewahren.
         </p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <Button href="/karte/" variant="primary">

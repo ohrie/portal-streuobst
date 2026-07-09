@@ -1,36 +1,56 @@
-'use client';
+"use client";
 
-import { useEffect, useRef, useState } from 'react';
-import mapboxgl from 'mapbox-gl';
-import 'mapbox-gl/dist/mapbox-gl.css';
-import { Sheet, SheetRef } from 'react-modal-sheet';
-import { useTransform } from 'motion/react';
-import { Menu, X, AlertCircle } from 'lucide-react';
-import MapLegend from '@/components/map/MapLegend';
-import SearchBox, { SearchResult } from '@/components/map/SearchBox';
-import RecentSearches, { addRecentSearch, RecentSearch } from '@/components/map/RecentSearches';
-import SatelliteToggleButton from '@/components/map/SatelliteToggleButton';
-import ProtectedAreasButton from '@/components/map/ProtectedAreasButton';
-import HistoricalAerialsButton, { HISTORICAL_AERIAL_LAYERS } from '@/components/map/HistoricalAerialsButton';
-import MeasureButton from '@/components/map/MeasureButton';
-import EditButton from '@/components/map/EditButton';
-import MapControlButton from '@/components/map/MapControlButton';
-import MeasurePanel from '@/components/map/MeasurePanel';
-import RouteDetailPanel from '@/components/map/RouteDetailPanel';
-import { createOSMPopupHTML } from '@/components/map/OSMPopup';
-import { calculateAreaM2, countTreesInPolygon, getFeatureCenter, type SelectedFeature } from '@/lib/geoArea';
-import { getCachedTrees, cacheTrees } from '@/lib/treeDetectionCache';
-import { saveMeasureSession, loadMeasureSession, clearMeasureSession } from '@/lib/measureSession';
-import partnerOrchards from '../../data/partner-orchards.json';
-import type { RouteFeature } from '@/types/routes';
+import mapboxgl from "mapbox-gl";
+import { useEffect, useRef, useState } from "react";
+import "mapbox-gl/dist/mapbox-gl.css";
+import { AlertCircle, Menu, X } from "lucide-react";
+import { useTransform } from "motion/react";
+import { Sheet, type SheetRef } from "react-modal-sheet";
+import EditButton from "@/components/map/EditButton";
+import HistoricalAerialsButton, {
+  HISTORICAL_AERIAL_LAYERS,
+} from "@/components/map/HistoricalAerialsButton";
+import MapControlButton from "@/components/map/MapControlButton";
+import MapLegend from "@/components/map/MapLegend";
+import MeasureButton from "@/components/map/MeasureButton";
+import MeasurePanel from "@/components/map/MeasurePanel";
+import { createOSMPopupHTML } from "@/components/map/OSMPopup";
+import ProtectedAreasButton from "@/components/map/ProtectedAreasButton";
+import RecentSearches, {
+  addRecentSearch,
+  type RecentSearch,
+} from "@/components/map/RecentSearches";
+import RouteDetailPanel from "@/components/map/RouteDetailPanel";
+import SatelliteToggleButton from "@/components/map/SatelliteToggleButton";
+import SearchBox, { type SearchResult } from "@/components/map/SearchBox";
+import {
+  calculateAreaM2,
+  countTreesInPolygon,
+  getFeatureCenter,
+  type SelectedFeature,
+} from "@/lib/geoArea";
+import {
+  clearMeasureSession,
+  loadMeasureSession,
+  saveMeasureSession,
+} from "@/lib/measureSession";
+import { cacheTrees, getCachedTrees } from "@/lib/treeDetectionCache";
+import type { RouteFeature } from "@/types/routes";
+import partnerOrchards from "../../data/partner-orchards.json";
 
 // Set Mapbox access token
-mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN || '';
+mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN || "";
 
-const TILE_SERVER_URL = process.env.NEXT_PUBLIC_TILE_SERVER_URL ?? 'https://tiles.portal-streuobst.de';
+const TILE_SERVER_URL =
+  process.env.NEXT_PUBLIC_TILE_SERVER_URL ??
+  "https://tiles.portal-streuobst.de";
 
 // Label marker helpers
-type LabelDatum = { el: HTMLDivElement; feature: SelectedFeature; index: number };
+type LabelDatum = {
+  el: HTMLDivElement;
+  feature: SelectedFeature;
+  index: number;
+};
 
 function applyLabelStyle(datum: LabelDatum) {
   const { el, feature, index } = datum;
@@ -50,13 +70,15 @@ export default function MapPage() {
   const [is3DMode, setIs3DMode] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showSearchResults, setShowSearchResults] = useState(false);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
-  const [protectedLayersVisible, setProtectedLayersVisible] = useState<Record<string, boolean>>({
+  const [protectedLayersVisible, setProtectedLayersVisible] = useState<
+    Record<string, boolean>
+  >({
     Naturschutzgebiete: false,
     Landschaftsschutzgebiete: false,
     Nationalparke: false,
@@ -66,26 +88,35 @@ export default function MapPage() {
     Fauna_Flora_Habitat_Gebiete: false,
     Nationale_Naturmonumente: false,
   });
-  const [aerialLayersVisible, setAerialLayersVisible] = useState<Record<string, boolean>>(
-    () => Object.fromEntries(HISTORICAL_AERIAL_LAYERS.map(l => [l.id, false]))
+  const [aerialLayersVisible, setAerialLayersVisible] = useState<
+    Record<string, boolean>
+  >(() =>
+    Object.fromEntries(HISTORICAL_AERIAL_LAYERS.map((l) => [l.id, false])),
   );
   // BW bounding box for historical aerials (all WMS services are BW-only)
-  const BW_BOUNDS = { west: 7.20, east: 10.70, south: 47.40, north: 50.00 };
+  const BW_BOUNDS = { west: 7.2, east: 10.7, south: 47.4, north: 50.0 };
   const [isInBWBounds, setIsInBWBounds] = useState(true);
   const [isLayerLoading, setIsLayerLoading] = useState(true);
   const [isMeasureMode, setIsMeasureMode] = useState(false);
-  const [selectedFeatures, setSelectedFeatures] = useState<SelectedFeature[]>([]);
+  const [selectedFeatures, setSelectedFeatures] = useState<SelectedFeature[]>(
+    [],
+  );
   const isMeasureModeRef = useRef(false);
   const selectedFeatureIds = useRef<Set<string>>(new Set());
   const labelMarkersRef = useRef<mapboxgl.Marker[]>([]);
   const labelDataRef = useRef<LabelDatum[]>([]);
 
   // Toast notifications
-  const [toasts, setToasts] = useState<Array<{ id: number; message: string }>>([]);
+  const [toasts, setToasts] = useState<Array<{ id: number; message: string }>>(
+    [],
+  );
   const addToast = (message: string) => {
     const id = Date.now();
-    setToasts(prev => [...prev, { id, message }]);
-    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 6000);
+    setToasts((prev) => [...prev, { id, message }]);
+    setTimeout(
+      () => setToasts((prev) => prev.filter((t) => t.id !== id)),
+      6000,
+    );
   };
 
   // Tree detection state
@@ -101,8 +132,8 @@ export default function MapPage() {
   const closeSelectedRoute = () => {
     if (selectedRouteFeatureId.current !== null) {
       map.current?.setFeatureState(
-        { source: 'streuobst-routes', id: selectedRouteFeatureId.current },
-        { selected: false }
+        { source: "streuobst-routes", id: selectedRouteFeatureId.current },
+        { selected: false },
       );
       selectedRouteFeatureId.current = null;
     }
@@ -116,10 +147,11 @@ export default function MapPage() {
   // Full-screen snap point (85% of viewport height)
   const [fullSnapPoint, setFullSnapPoint] = useState(580);
   useEffect(() => {
-    const update = () => setFullSnapPoint(Math.round(window.innerHeight * 0.85));
+    const update = () =>
+      setFullSnapPoint(Math.round(window.innerHeight * 0.85));
     update();
-    window.addEventListener('resize', update);
-    return () => window.removeEventListener('resize', update);
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
   }, []);
 
   // Sidebar resize state
@@ -135,7 +167,9 @@ export default function MapPage() {
       .then((data) => {
         if (data.last_updated) setLastUpdated(data.last_updated);
       })
-      .catch(() => { /* silently ignore if tileserver is unavailable */ });
+      .catch(() => {
+        /* silently ignore if tileserver is unavailable */
+      });
   }, []);
 
   // Detect mobile device
@@ -145,9 +179,9 @@ export default function MapPage() {
     if (mobile) setSidebarOpen(false);
 
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
-    window.addEventListener('resize', checkMobile);
+    window.addEventListener("resize", checkMobile);
 
-    return () => window.removeEventListener('resize', checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
   // Handle sidebar resize
@@ -156,7 +190,10 @@ export default function MapPage() {
 
     const handleMouseMove = (e: MouseEvent) => {
       const delta = e.clientX - resizeStartX.current;
-      const newWidth = Math.max(300, Math.min(800, resizeStartWidth.current + delta));
+      const newWidth = Math.max(
+        300,
+        Math.min(800, resizeStartWidth.current + delta),
+      );
       setSidebarWidth(newWidth);
     };
 
@@ -164,12 +201,12 @@ export default function MapPage() {
       setIsResizing(false);
     };
 
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
 
     return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
     };
   }, [isResizing]);
 
@@ -183,13 +220,13 @@ export default function MapPage() {
   // Handle ESC key to close sidebar
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && sidebarOpen) {
+      if (e.key === "Escape" && sidebarOpen) {
         setSidebarOpen(false);
       }
     };
 
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
   }, [sidebarOpen]);
 
   // Sync isMeasureMode into ref so map event handlers (created once) can read current value
@@ -213,7 +250,8 @@ export default function MapPage() {
     }
 
     const mapInstance = map.current;
-    if (!mapInstance || !mapInstance.getLayer('streuobst-routes-selected')) return;
+    if (!mapInstance || !mapInstance.getLayer("streuobst-routes-selected"))
+      return;
 
     const dashLen = 3;
     const gapLen = 4;
@@ -240,10 +278,12 @@ export default function MapPage() {
 
     let lastStep = -1;
     const animate = (timestamp: number) => {
-      const step = Math.floor((timestamp % cycleDuration) / cycleDuration * steps);
+      const step = Math.floor(
+        ((timestamp % cycleDuration) / cycleDuration) * steps,
+      );
       if (step !== lastStep) {
         lastStep = step;
-        setPaint('streuobst-routes-selected', 'line-dasharray', frames[step]);
+        setPaint("streuobst-routes-selected", "line-dasharray", frames[step]);
       }
       animFrameRef.current = requestAnimationFrame(animate);
     };
@@ -259,7 +299,7 @@ export default function MapPage() {
         animFrameRef.current = requestAnimationFrame(animate);
       }
     };
-    document.addEventListener('visibilitychange', handleVisibility);
+    document.addEventListener("visibilitychange", handleVisibility);
 
     animFrameRef.current = requestAnimationFrame(animate);
 
@@ -268,7 +308,7 @@ export default function MapPage() {
         cancelAnimationFrame(animFrameRef.current);
         animFrameRef.current = null;
       }
-      document.removeEventListener('visibilitychange', handleVisibility);
+      document.removeEventListener("visibilitychange", handleVisibility);
     };
   }, [selectedRoute]);
 
@@ -284,14 +324,14 @@ export default function MapPage() {
     try {
       // Use Photon API (Komoot) - free, no API key needed
       const response = await fetch(
-        `https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=5&lang=de`
+        `https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=5&lang=de`,
       );
       const data = await response.json();
 
       setSearchResults(data.features || []);
       setShowSearchResults(true);
     } catch (error) {
-      console.error('Search failed:', error);
+      console.error("Search failed:", error);
       setSearchResults([]);
     } finally {
       setIsSearching(false);
@@ -328,20 +368,20 @@ export default function MapPage() {
       map.current.flyTo({
         center: [lng, lat],
         zoom: 14,
-        duration: 2000
+        duration: 2000,
       });
 
       // Add a marker
-      new mapboxgl.Marker({ color: '#FF8C00' })
+      new mapboxgl.Marker({ color: "#FF8C00" })
         .setLngLat([lng, lat])
         .setPopup(
           new mapboxgl.Popup().setHTML(`
             <div class="p-2">
               <h3 class="font-bold">${result.properties.name}</h3>
-              ${result.properties.city ? `<p class="text-sm">${result.properties.city}</p>` : ''}
-              ${result.properties.state ? `<p class="text-sm">${result.properties.state}</p>` : ''}
+              ${result.properties.city ? `<p class="text-sm">${result.properties.city}</p>` : ""}
+              ${result.properties.state ? `<p class="text-sm">${result.properties.state}</p>` : ""}
             </div>
-          `)
+          `),
         )
         .addTo(map.current);
     }
@@ -349,7 +389,7 @@ export default function MapPage() {
     // Add to recent searches
     addRecentSearch(result.properties.name, [lng, lat]);
 
-    setSearchQuery('');
+    setSearchQuery("");
     setSearchResults([]);
     setShowSearchResults(false);
   };
@@ -362,18 +402,18 @@ export default function MapPage() {
       map.current.flyTo({
         center: [lng, lat],
         zoom: 14,
-        duration: 2000
+        duration: 2000,
       });
 
       // Add a marker
-      new mapboxgl.Marker({ color: '#FF8C00' })
+      new mapboxgl.Marker({ color: "#FF8C00" })
         .setLngLat([lng, lat])
         .setPopup(
           new mapboxgl.Popup().setHTML(`
             <div class="p-2">
               <h3 class="font-bold">${search.name}</h3>
             </div>
-          `)
+          `),
         )
         .addTo(map.current);
     }
@@ -386,166 +426,178 @@ export default function MapPage() {
 
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
-      style: 'mapbox://styles/mapbox/light-v11',
+      style: "mapbox://styles/mapbox/light-v11",
       hash: true,
       center: [10.4515, 51.1657], // Center of Germany
       zoom: 6,
       minZoom: 5,
       maxZoom: 22,
-      language: "de"
+      language: "de",
     });
 
     // Add navigation controls
-    map.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
+    map.current.addControl(new mapboxgl.NavigationControl(), "top-right");
 
     map.current.addControl(
       new mapboxgl.GeolocateControl({
         positionOptions: { enableHighAccuracy: true },
         trackUserLocation: false,
       }),
-      'top-right'
+      "top-right",
     );
 
-    map.current.on('load', () => {
+    map.current.on("load", () => {
       // Add satellite raster source
-      map.current?.addSource('satellite', {
-        type: 'raster',
-        url: 'mapbox://mapbox.satellite',
-        tileSize: 256
+      map.current?.addSource("satellite", {
+        type: "raster",
+        url: "mapbox://mapbox.satellite",
+        tileSize: 256,
       });
 
       // Add satellite layer (initially hidden)
       map.current?.addLayer({
-        id: 'satellite-layer',
-        type: 'raster',
-        source: 'satellite',
+        id: "satellite-layer",
+        type: "raster",
+        source: "satellite",
         layout: {
-          visibility: 'none'
-        }
+          visibility: "none",
+        },
       });
 
       // Add individual BfN protected area WMS sources and layers (initially hidden)
       const bfnLayers = [
-        'Naturschutzgebiete',
-        'Landschaftsschutzgebiete',
-        'Nationalparke',
-        'Naturparke',
-        'Biosphaerenreservate',
-        'Vogelschutzgebiete',
-        'Fauna_Flora_Habitat_Gebiete',
-        'Nationale_Naturmonumente',
+        "Naturschutzgebiete",
+        "Landschaftsschutzgebiete",
+        "Nationalparke",
+        "Naturparke",
+        "Biosphaerenreservate",
+        "Vogelschutzgebiete",
+        "Fauna_Flora_Habitat_Gebiete",
+        "Nationale_Naturmonumente",
       ];
       for (const layerId of bfnLayers) {
         map.current?.addSource(`pa-${layerId}`, {
-          type: 'raster',
+          type: "raster",
           tiles: [
-            `https://geodienste.bfn.de/ogc/wms/schutzgebiet?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&FORMAT=image/png&TRANSPARENT=true&LAYERS=${layerId}&CRS=EPSG:3857&STYLES=&WIDTH=256&HEIGHT=256&BBOX={bbox-epsg-3857}`
+            `https://geodienste.bfn.de/ogc/wms/schutzgebiet?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&FORMAT=image/png&TRANSPARENT=true&LAYERS=${layerId}&CRS=EPSG:3857&STYLES=&WIDTH=256&HEIGHT=256&BBOX={bbox-epsg-3857}`,
           ],
           tileSize: 256,
-          attribution: '© <a href="https://www.bfn.de" target="_blank">Bundesamt für Naturschutz (BfN)</a>'
+          attribution:
+            '© <a href="https://www.bfn.de" target="_blank">Bundesamt für Naturschutz (BfN)</a>',
         });
         map.current?.addLayer({
           id: `pa-layer-${layerId}`,
-          type: 'raster',
+          type: "raster",
           source: `pa-${layerId}`,
-          layout: { visibility: 'none' },
-          paint: { 'raster-opacity': 0.6 }
+          layout: { visibility: "none" },
+          paint: { "raster-opacity": 0.6 },
         });
       }
 
       // Add historical aerial photo WMS sources and layers (LGL-BW, BW only, initially hidden)
       for (const layer of HISTORICAL_AERIAL_LAYERS) {
         map.current?.addSource(`hist-${layer.id}`, {
-          type: 'raster',
+          type: "raster",
           tiles: [
-            `https://owsproxy.lgl-bw.de/owsproxy/ows/WMS_LGL-BW_HIST_DOP_${layer.endpoint}?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&FORMAT=image/png&TRANSPARENT=true&LAYERS=${layer.id}&CRS=EPSG:3857&STYLES=&WIDTH=256&HEIGHT=256&BBOX={bbox-epsg-3857}`
+            `https://owsproxy.lgl-bw.de/owsproxy/ows/WMS_LGL-BW_HIST_DOP_${layer.endpoint}?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&FORMAT=image/png&TRANSPARENT=true&LAYERS=${layer.id}&CRS=EPSG:3857&STYLES=&WIDTH=256&HEIGHT=256&BBOX={bbox-epsg-3857}`,
           ],
           tileSize: 256,
-          attribution: '© <a href="https://www.lgl-bw.de" target="_blank">LGL-BW</a>, <a href="https://www.govdata.de/dl-de/by-2-0" target="_blank">dl-de/by-2-0</a>'
+          attribution:
+            '© <a href="https://www.lgl-bw.de" target="_blank">LGL-BW</a>, <a href="https://www.govdata.de/dl-de/by-2-0" target="_blank">dl-de/by-2-0</a>',
         });
         map.current?.addLayer({
           id: `hist-layer-${layer.id}`,
-          type: 'raster',
+          type: "raster",
           source: `hist-${layer.id}`,
-          layout: { visibility: 'none' },
-          paint: { 'raster-opacity': 1.0 }
+          layout: { visibility: "none" },
+          paint: { "raster-opacity": 1.0 },
         });
       }
 
       // Track loading state for overlay WMS layers (aerial + protected areas)
-      map.current?.on('sourcedata', (e) => {
-        if (e.sourceId && (e.sourceId.startsWith('hist-') || e.sourceId.startsWith('pa-'))) {
+      map.current?.on("sourcedata", (e) => {
+        if (
+          e.sourceId &&
+          (e.sourceId.startsWith("hist-") || e.sourceId.startsWith("pa-"))
+        ) {
           if (!e.isSourceLoaded) setIsLayerLoading(true);
         }
       });
-      map.current?.on('idle', () => {
+      map.current?.on("idle", () => {
         setIsLayerLoading(false);
       });
 
       // Add Mapterhorn terrain source for hillshading (Terrarium-encoded DEM)
-      map.current?.addSource('mapterhorn-terrain', {
-        type: 'raster-dem',
-        tiles: ['https://tiles.mapterhorn.com/{z}/{x}/{y}.webp'],
+      map.current?.addSource("mapterhorn-terrain", {
+        type: "raster-dem",
+        tiles: ["https://tiles.mapterhorn.com/{z}/{x}/{y}.webp"],
         tileSize: 512,
-        encoding: 'terrarium',
-        maxzoom: 12
+        encoding: "terrarium",
+        maxzoom: 12,
       });
 
       // Terrain initially disabled — activated via 3D button
 
       // Add hillshade layer below data layers (initially hidden — activated via 3D button)
       map.current?.addLayer({
-        id: 'hillshade',
-        type: 'hillshade',
-        source: 'mapterhorn-terrain',
-        layout: { visibility: 'none' },
+        id: "hillshade",
+        type: "hillshade",
+        source: "mapterhorn-terrain",
+        layout: { visibility: "none" },
         paint: {
-          'hillshade-exaggeration': 0.5,
-          'hillshade-illumination-anchor': 'viewport'
-        }
+          "hillshade-exaggeration": 0.5,
+          "hillshade-illumination-anchor": "viewport",
+        },
       });
 
       // Add streuobstwiesen vector tiles source
-      map.current?.addSource('streuobstwiesen', {
-        type: 'vector',
+      map.current?.addSource("streuobstwiesen", {
+        type: "vector",
         tiles: [`${TILE_SERVER_URL}/data/streuobstwiesen/{z}/{x}/{y}.pbf`],
         minzoom: 0,
         maxzoom: 16,
-        promoteId: { wiesen: 'osm_id', streuobstwiesen: 'osm_id', baeume: 'osm_id' }
+        promoteId: {
+          wiesen: "osm_id",
+          streuobstwiesen: "osm_id",
+          baeume: "osm_id",
+        },
       });
 
       // Add wiesen (meadows) layer - yellowish color, orange for meadow_orchard
       map.current?.addLayer({
-        id: 'wiesen-fill',
-        type: 'fill',
-        source: 'streuobstwiesen',
-        'source-layer': 'wiesen',
+        id: "wiesen-fill",
+        type: "fill",
+        source: "streuobstwiesen",
+        "source-layer": "wiesen",
         paint: {
           // Color based on orchard attribute - use case at top level
-          'fill-color': [
-            'case',
-            ['==', ['get', 'orchard'], 'meadow_orchard'], '#FF8C00', // Orange for meadow_orchard
-            ['==', ['get', 'orchard'], 'plantation'], '#9CA3AF', // Grey for plantation
-            '#667302' // Default color for other wiesen
+          "fill-color": [
+            "case",
+            ["==", ["get", "orchard"], "meadow_orchard"],
+            "#FF8C00", // Orange for meadow_orchard
+            ["==", ["get", "orchard"], "plantation"],
+            "#9CA3AF", // Grey for plantation
+            "#667302", // Default color for other wiesen
           ],
-          'fill-opacity': [
-            'case',
-            ['==', ['get', 'orchard'], 'meadow_orchard'], 0.6, // Same opacity as streuobstwiesen
-            0.5 // Default opacity for other wiesen
-          ]
-        }
+          "fill-opacity": [
+            "case",
+            ["==", ["get", "orchard"], "meadow_orchard"],
+            0.6, // Same opacity as streuobstwiesen
+            0.5, // Default opacity for other wiesen
+          ],
+        },
       });
 
       // Add streuobstwiesen layer - orange color
       map.current?.addLayer({
-        id: 'streuobstwiesen-fill',
-        type: 'fill',
-        source: 'streuobstwiesen',
-        'source-layer': 'streuobstwiesen',
+        id: "streuobstwiesen-fill",
+        type: "fill",
+        source: "streuobstwiesen",
+        "source-layer": "streuobstwiesen",
         paint: {
-          'fill-color': '#FF8C00', // Orange color (dark orange)
-          'fill-opacity': 0.5
-        }
+          "fill-color": "#FF8C00", // Orange color (dark orange)
+          "fill-opacity": 0.5,
+        },
       });
 
       // Blue selection highlight layers for the measure mode.
@@ -553,146 +605,169 @@ export default function MapPage() {
       // Opacity is 0 by default and switches to the active value when the feature's
       // `selected` state is set to true (via setFeatureState on click in measure mode).
       map.current?.addLayer({
-        id: 'wiesen-selected-outline',
-        type: 'line',
-        source: 'streuobstwiesen',
-        'source-layer': 'wiesen',
+        id: "wiesen-selected-outline",
+        type: "line",
+        source: "streuobstwiesen",
+        "source-layer": "wiesen",
         paint: {
-          'line-color': '#3B82F6',
-          'line-width': 3,
-          'line-opacity': [
-            'case',
-            ['boolean', ['feature-state', 'selected'], false],
+          "line-color": "#3B82F6",
+          "line-width": 3,
+          "line-opacity": [
+            "case",
+            ["boolean", ["feature-state", "selected"], false],
             1,
-            0
-          ] as any
-        }
+            0,
+          ] as any,
+        },
       });
 
       map.current?.addLayer({
-        id: 'streuobstwiesen-selected-outline',
-        type: 'line',
-        source: 'streuobstwiesen',
-        'source-layer': 'streuobstwiesen',
+        id: "streuobstwiesen-selected-outline",
+        type: "line",
+        source: "streuobstwiesen",
+        "source-layer": "streuobstwiesen",
         paint: {
-          'line-color': '#3B82F6',
-          'line-width': 3,
-          'line-opacity': [
-            'case',
-            ['boolean', ['feature-state', 'selected'], false],
+          "line-color": "#3B82F6",
+          "line-width": 3,
+          "line-opacity": [
+            "case",
+            ["boolean", ["feature-state", "selected"], false],
             1,
-            0
-          ] as any
-        }
+            0,
+          ] as any,
+        },
       });
 
       // Add baeume (trees) layer - green circles
       map.current?.addLayer({
-        id: 'baeume-circle',
-        type: 'circle',
-        source: 'streuobstwiesen',
-        'source-layer': 'baeume',
+        id: "baeume-circle",
+        type: "circle",
+        source: "streuobstwiesen",
+        "source-layer": "baeume",
         minzoom: 10,
         paint: {
-          'circle-color': '#228B22', // Green color (forest green)
-          'circle-radius': [
-            'interpolate',
-            ['exponential', 1.3],
-            ['zoom'],
-            10, 1,  // small at zoom 10
-            15, 2,  // visible at mid zooms
-            20, 15  // larger at high zooms
+          "circle-color": "#228B22", // Green color (forest green)
+          "circle-radius": [
+            "interpolate",
+            ["exponential", 1.3],
+            ["zoom"],
+            10,
+            1, // small at zoom 10
+            15,
+            2, // visible at mid zooms
+            20,
+            15, // larger at high zooms
           ],
-          'circle-stroke-width': [
-            'interpolate',
-            ['exponential', 1.3],
-            ['zoom'],
-            10, 0.5,
-            20, 2
+          "circle-stroke-width": [
+            "interpolate",
+            ["exponential", 1.3],
+            ["zoom"],
+            10,
+            0.5,
+            20,
+            2,
           ],
-          'circle-stroke-color': '#006400'
-        }
+          "circle-stroke-color": "#006400",
+        },
       });
 
       // Tree species label (zoom 19+): species:de → species → genus:de → genus
       map.current?.addLayer({
-        id: 'baeume-label-species',
-        type: 'symbol',
-        source: 'streuobstwiesen',
-        'source-layer': 'baeume',
+        id: "baeume-label-species",
+        type: "symbol",
+        source: "streuobstwiesen",
+        "source-layer": "baeume",
         minzoom: 18,
         layout: {
-          'text-field': ['coalesce', ['get', 'species:de'], ['get', 'species'], ['get', 'genus:de'], ['get', 'genus']],
-          'text-font': ['Open Sans Regular', 'Arial Unicode MS Regular'],
-          'text-size': 13,
-          'text-anchor': 'top',
-          'text-offset': [0, 1.8],
-          'text-allow-overlap': false,
-          'text-ignore-placement': false,
+          "text-field": [
+            "coalesce",
+            ["get", "species:de"],
+            ["get", "species"],
+            ["get", "genus:de"],
+            ["get", "genus"],
+          ],
+          "text-font": ["Open Sans Regular", "Arial Unicode MS Regular"],
+          "text-size": 13,
+          "text-anchor": "top",
+          "text-offset": [0, 1.8],
+          "text-allow-overlap": false,
+          "text-ignore-placement": false,
         },
         paint: {
-          'text-color': '#166534',
-          'text-halo-color': 'rgba(255, 255, 255, 0.9)',
-          'text-halo-width': 1.5,
-        }
+          "text-color": "#166534",
+          "text-halo-color": "rgba(255, 255, 255, 0.9)",
+          "text-halo-width": 1.5,
+        },
       });
 
       // Tree taxon/cultivar label (zoom 21+, italic): taxon:de → taxon → taxon:cultivar:de → taxon:cultivar
       map.current?.addLayer({
-        id: 'baeume-label-taxon',
-        type: 'symbol',
-        source: 'streuobstwiesen',
-        'source-layer': 'baeume',
+        id: "baeume-label-taxon",
+        type: "symbol",
+        source: "streuobstwiesen",
+        "source-layer": "baeume",
         minzoom: 19,
         layout: {
-          'text-field': ['coalesce', ['get', 'taxon:de'], ['get', 'taxon'], ['get', 'taxon:cultivar:de'], ['get', 'taxon:cultivar']],
-          'text-font': ['Open Sans Italic', 'Arial Unicode MS Regular'],
-          'text-size': 13,
-          'text-anchor': 'top',
-          'text-offset': [0, 3.2],
-          'text-allow-overlap': true,
-          'text-ignore-placement': true,
+          "text-field": [
+            "coalesce",
+            ["get", "taxon:de"],
+            ["get", "taxon"],
+            ["get", "taxon:cultivar:de"],
+            ["get", "taxon:cultivar"],
+          ],
+          "text-font": ["Open Sans Italic", "Arial Unicode MS Regular"],
+          "text-size": 13,
+          "text-anchor": "top",
+          "text-offset": [0, 3.2],
+          "text-allow-overlap": true,
+          "text-ignore-placement": true,
         },
         paint: {
-          'text-color': '#166534',
-          'text-halo-color': 'rgba(255, 255, 255, 0.9)',
-          'text-halo-width': 1.5,
-        }
+          "text-color": "#166534",
+          "text-halo-color": "rgba(255, 255, 255, 0.9)",
+          "text-halo-width": 1.5,
+        },
       });
 
       // Tree ref label inside the circle (zoom 18+): only short refs (< 3 characters)
       map.current?.addLayer({
-        id: 'baeume-label-ref',
-        type: 'symbol',
-        source: 'streuobstwiesen',
-        'source-layer': 'baeume',
+        id: "baeume-label-ref",
+        type: "symbol",
+        source: "streuobstwiesen",
+        "source-layer": "baeume",
         minzoom: 18,
-        filter: ['all', ['has', 'ref'], ['<', ['length', ['to-string', ['get', 'ref']]], 4]],
+        filter: [
+          "all",
+          ["has", "ref"],
+          ["<", ["length", ["to-string", ["get", "ref"]]], 4],
+        ],
         layout: {
-          'text-field': ['to-string', ['get', 'ref']],
-          'text-font': ['Open Sans Bold', 'Arial Unicode MS Regular'],
-          'text-size': [
-            'interpolate',
-            ['exponential', 1.3],
-            ['zoom'],
-            18, 7,
-            20, 14
+          "text-field": ["to-string", ["get", "ref"]],
+          "text-font": ["Open Sans Bold", "Arial Unicode MS Regular"],
+          "text-size": [
+            "interpolate",
+            ["exponential", 1.3],
+            ["zoom"],
+            18,
+            7,
+            20,
+            14,
           ],
-          'text-anchor': 'center',
-          'text-allow-overlap': true,
-          'text-ignore-placement': true,
+          "text-anchor": "center",
+          "text-allow-overlap": true,
+          "text-ignore-placement": true,
         },
         paint: {
-          'text-color': '#ffffff',
-          'text-halo-color': 'rgba(0, 100, 0, 0.9)',
-          'text-halo-width': 1,
-        }
+          "text-color": "#ffffff",
+          "text-halo-color": "rgba(0, 100, 0, 0.9)",
+          "text-halo-width": 1,
+        },
       });
 
       // Add partner orchards data
-      map.current?.addSource('partner-orchards', {
-        type: 'geojson',
-        data: partnerOrchards as GeoJSON.FeatureCollection
+      map.current?.addSource("partner-orchards", {
+        type: "geojson",
+        data: partnerOrchards as GeoJSON.FeatureCollection,
       });
 
       // Load partner logos as map images
@@ -714,43 +789,46 @@ export default function MapPage() {
 
       // Load all partner logos
       const logoPromises = [
-        loadImage('/partner/Japfel_Logo.png', 'japfel-logo')
+        loadImage("/partner/Japfel_Logo.png", "japfel-logo"),
       ];
 
       // Add partner circle layer (visible below zoom 10)
       map.current?.addLayer({
-        id: 'partner-circles',
-        type: 'circle',
-        source: 'partner-orchards',
+        id: "partner-circles",
+        type: "circle",
+        source: "partner-orchards",
         minzoom: 7,
         maxzoom: 10,
         paint: {
-          'circle-color': '#860100',
-          'circle-radius': 8,
-          'circle-stroke-width': 2,
-          'circle-stroke-color': '#ffffff'
-        }
+          "circle-color": "#860100",
+          "circle-radius": 8,
+          "circle-stroke-width": 2,
+          "circle-stroke-color": "#ffffff",
+        },
       });
 
       // Wait for all logos to load, then add layers
       Promise.all(logoPromises).then(() => {
         // Add partner logo layer (visible from zoom 10)
         map.current?.addLayer({
-          id: 'partner-logos',
-          type: 'symbol',
-          source: 'partner-orchards',
+          id: "partner-logos",
+          type: "symbol",
+          source: "partner-orchards",
           minzoom: 10,
           layout: {
-            'icon-image': 'japfel-logo',
-            'icon-size': 0.5,
-            'icon-allow-overlap': true
-          }
+            "icon-image": "japfel-logo",
+            "icon-size": 0.5,
+            "icon-allow-overlap": true,
+          },
         });
       });
 
       // Shared popup builder for partner orchards
       const openPartnerPopup = (feature: mapboxgl.GeoJSONFeature) => {
-        const coordinates = (feature.geometry as GeoJSON.Point).coordinates as [number, number];
+        const coordinates = (feature.geometry as GeoJSON.Point).coordinates as [
+          number,
+          number,
+        ];
         const properties = feature.properties;
 
         new mapboxgl.Popup()
@@ -772,37 +850,52 @@ export default function MapPage() {
       };
 
       // Add click events for partner logos and circles
-      map.current?.on('click', 'partner-logos', (e: mapboxgl.MapMouseEvent) => {
+      map.current?.on("click", "partner-logos", (e: mapboxgl.MapMouseEvent) => {
         if (!e.features || !e.features[0]) return;
         openPartnerPopup(e.features[0]);
       });
 
-      map.current?.on('click', 'partner-circles', (e: mapboxgl.MapMouseEvent) => {
-        if (!e.features || !e.features[0]) return;
-        openPartnerPopup(e.features[0]);
-      });
+      map.current?.on(
+        "click",
+        "partner-circles",
+        (e: mapboxgl.MapMouseEvent) => {
+          if (!e.features || !e.features[0]) return;
+          openPartnerPopup(e.features[0]);
+        },
+      );
 
       // Detected trees layer (initially empty, filled by tree detection API)
-      map.current?.addSource('detected-trees', {
-        type: 'geojson',
-        data: { type: 'FeatureCollection', features: [] },
-        attribution: '<a href="https://www.lgl-bw.de/Produkte/Open-Data/" target="_blank">LGL, www.lgl-bw.de</a>, dl-de/by-2-0 | © <a href="https://geodaten.bayern.de/opengeodata" target="_blank">Bayerische Vermessungsverwaltung</a>',
+      map.current?.addSource("detected-trees", {
+        type: "geojson",
+        data: { type: "FeatureCollection", features: [] },
+        attribution:
+          '<a href="https://www.lgl-bw.de/Produkte/Open-Data/" target="_blank">LGL, www.lgl-bw.de</a>, dl-de/by-2-0 | © <a href="https://geodaten.bayern.de/opengeodata" target="_blank">Bayerische Vermessungsverwaltung</a>',
       });
       map.current?.addLayer({
-        id: 'detected-trees-circle',
-        type: 'circle',
-        source: 'detected-trees',
+        id: "detected-trees-circle",
+        type: "circle",
+        source: "detected-trees",
         paint: {
-          'circle-color': '#16a34a',
-          'circle-radius': ['interpolate', ['linear'], ['zoom'], 12, 3, 16, 8, 20, 12],
-          'circle-opacity': 0.85,
-          'circle-stroke-width': 1.5,
-          'circle-stroke-color': '#14532d',
+          "circle-color": "#16a34a",
+          "circle-radius": [
+            "interpolate",
+            ["linear"],
+            ["zoom"],
+            12,
+            3,
+            16,
+            8,
+            20,
+            12,
+          ],
+          "circle-opacity": 0.85,
+          "circle-stroke-width": 1.5,
+          "circle-stroke-color": "#14532d",
         },
       });
 
       // Add click events for streuobstwiesen layers
-      map.current?.on('click', 'wiesen-fill', (e: mapboxgl.MapMouseEvent) => {
+      map.current?.on("click", "wiesen-fill", (e: mapboxgl.MapMouseEvent) => {
         if (!e.features || !e.features[0]) return;
 
         // Only activate click events at zoom level 10 and above
@@ -811,7 +904,10 @@ export default function MapPage() {
 
         // If a tree was clicked at this point, the tree popup has priority.
         if (!isMeasureModeRef.current) {
-          const treeFeatures = map.current?.queryRenderedFeatures(e.point, { layers: ['baeume-circle'] }) ?? [];
+          const treeFeatures =
+            map.current?.queryRenderedFeatures(e.point, {
+              layers: ["baeume-circle"],
+            }) ?? [];
           if (treeFeatures.length > 0) return;
         }
 
@@ -827,34 +923,69 @@ export default function MapPage() {
           if (selectedFeatureIds.current.has(key)) {
             selectedFeatureIds.current.delete(key);
             map.current?.setFeatureState(
-              { source: 'streuobstwiesen', sourceLayer: 'wiesen', id: featureId },
-              { selected: false }
+              {
+                source: "streuobstwiesen",
+                sourceLayer: "wiesen",
+                id: featureId,
+              },
+              { selected: false },
             );
-            setSelectedFeatures(prev => prev.filter(f => `${f.sourceLayer}:${f.id}` !== key));
+            setSelectedFeatures((prev) =>
+              prev.filter((f) => `${f.sourceLayer}:${f.id}` !== key),
+            );
           } else {
             selectedFeatureIds.current.add(key);
             map.current?.setFeatureState(
-              { source: 'streuobstwiesen', sourceLayer: 'wiesen', id: featureId },
-              { selected: true }
+              {
+                source: "streuobstwiesen",
+                sourceLayer: "wiesen",
+                id: featureId,
+              },
+              { selected: true },
             );
-            const areaM2 = calculateAreaM2(feature.geometry as GeoJSON.Geometry);
-            const center = getFeatureCenter(feature.geometry as GeoJSON.Geometry);
-            const treeCount = map.current ? countTreesInPolygon(map.current, feature.geometry as GeoJSON.Geometry) : undefined;
+            const areaM2 = calculateAreaM2(
+              feature.geometry as GeoJSON.Geometry,
+            );
+            const center = getFeatureCenter(
+              feature.geometry as GeoJSON.Geometry,
+            );
+            const treeCount = map.current
+              ? countTreesInPolygon(
+                  map.current,
+                  feature.geometry as GeoJSON.Geometry,
+                )
+              : undefined;
             const name = propsObj?.name as string | undefined;
-            setSelectedFeatures(prev => [...prev, { id: featureId, sourceLayer: 'wiesen', areaM2, center, name, treeCount }]);
-            if (isTreeAutoDetectRef.current) handleDetectTrees(String(featureId));
+            setSelectedFeatures((prev) => [
+              ...prev,
+              {
+                id: featureId,
+                sourceLayer: "wiesen",
+                areaM2,
+                center,
+                name,
+                treeCount,
+              },
+            ]);
+            if (isTreeAutoDetectRef.current)
+              handleDetectTrees(String(featureId));
           }
           return;
         }
 
-        const isMeadowOrchard = propsObj?.orchard === 'meadow_orchard';
-        const isPlantation = propsObj?.orchard === 'plantation';
-        const osmId = propsObj?.osm_id;  // tippecanoe uses osm_id property
+        const isMeadowOrchard = propsObj?.orchard === "meadow_orchard";
+        const isPlantation = propsObj?.orchard === "plantation";
+        const osmId = propsObj?.osm_id; // tippecanoe uses osm_id property
         const areaM2 = calculateAreaM2(feature.geometry as GeoJSON.Geometry);
-        const treeCount = map.current ? countTreesInPolygon(map.current, feature.geometry as GeoJSON.Geometry) : undefined;
+        const treeCount = map.current
+          ? countTreesInPolygon(
+              map.current,
+              feature.geometry as GeoJSON.Geometry,
+            )
+          : undefined;
 
         const additionalContent = isMeadowOrchard
-          ? ''
+          ? ""
           : isPlantation
             ? '<p class="text-sm text-gray-500 mb-2">Kommerzielle Obstplantage</p>'
             : `<div class="bg-yellow-50 border border-yellow-300 rounded p-2 mb-2">
@@ -863,82 +994,132 @@ export default function MapPage() {
               <p class="text-xs text-yellow-700 mb-2">Füge den Key <code class="bg-yellow-100 px-1 rounded">orchard=*</code> hinzu, um die Art festzulegen.</p>
             </div>`;
 
-        const title = isMeadowOrchard ? 'Streuobstwiese' : isPlantation ? 'Obstplantage' : 'Obstgarten';
+        const title = isMeadowOrchard
+          ? "Streuobstwiese"
+          : isPlantation
+            ? "Obstplantage"
+            : "Obstgarten";
 
         new mapboxgl.Popup()
           .setLngLat(coordinates)
-          .setHTML(createOSMPopupHTML({
-            title: title,
-            osmId: osmId,
-            additionalContent: additionalContent,
-            showOSMTags: true,
-            properties: propsObj,
-            areaM2,
-            treeCount
-          }))
+          .setHTML(
+            createOSMPopupHTML({
+              title: title,
+              osmId: osmId,
+              additionalContent: additionalContent,
+              showOSMTags: true,
+              properties: propsObj,
+              areaM2,
+              treeCount,
+            }),
+          )
           .addTo(map.current!);
       });
 
-      map.current?.on('click', 'streuobstwiesen-fill', (e: mapboxgl.MapMouseEvent) => {
-        if (!e.features || !e.features[0]) return;
+      map.current?.on(
+        "click",
+        "streuobstwiesen-fill",
+        (e: mapboxgl.MapMouseEvent) => {
+          if (!e.features || !e.features[0]) return;
 
-        // Disable clicks at low zoom where tiles show aggregated/buffered shapes
-        const currentZoom = map.current?.getZoom() || 0;
-        if (currentZoom < 8) return;
+          // Disable clicks at low zoom where tiles show aggregated/buffered shapes
+          const currentZoom = map.current?.getZoom() || 0;
+          if (currentZoom < 8) return;
 
-        // If a tree was clicked at this point, the tree popup has priority.
-        if (!isMeasureModeRef.current) {
-          const treeFeatures = map.current?.queryRenderedFeatures(e.point, { layers: ['baeume-circle'] }) ?? [];
-          if (treeFeatures.length > 0) return;
-        }
-
-        const feature = e.features[0];
-        const coordinates = e.lngLat;
-        const osmId = feature.id;  // osmium export uses top-level id field with type_id format
-        const propsObj = feature.properties as Record<string, any> | null;
-
-        // Measure mode: toggle selection instead of showing popup
-        if (isMeasureModeRef.current && osmId != null) {
-          const key = `streuobstwiesen:${osmId}`;
-          if (selectedFeatureIds.current.has(key)) {
-            selectedFeatureIds.current.delete(key);
-            map.current?.setFeatureState(
-              { source: 'streuobstwiesen', sourceLayer: 'streuobstwiesen', id: osmId },
-              { selected: false }
-            );
-            setSelectedFeatures(prev => prev.filter(f => `${f.sourceLayer}:${f.id}` !== key));
-          } else {
-            selectedFeatureIds.current.add(key);
-            map.current?.setFeatureState(
-              { source: 'streuobstwiesen', sourceLayer: 'streuobstwiesen', id: osmId },
-              { selected: true }
-            );
-            const areaM2 = calculateAreaM2(feature.geometry as GeoJSON.Geometry);
-            const center = getFeatureCenter(feature.geometry as GeoJSON.Geometry);
-            const treeCount = map.current ? countTreesInPolygon(map.current, feature.geometry as GeoJSON.Geometry) : undefined;
-            const name = propsObj?.name as string | undefined;
-            setSelectedFeatures(prev => [...prev, { id: osmId, sourceLayer: 'streuobstwiesen', areaM2, center, name, treeCount }]);
-            if (isTreeAutoDetectRef.current) handleDetectTrees(String(osmId));
+          // If a tree was clicked at this point, the tree popup has priority.
+          if (!isMeasureModeRef.current) {
+            const treeFeatures =
+              map.current?.queryRenderedFeatures(e.point, {
+                layers: ["baeume-circle"],
+              }) ?? [];
+            if (treeFeatures.length > 0) return;
           }
-          return;
-        }
 
-        const areaM2 = calculateAreaM2(feature.geometry as GeoJSON.Geometry);
-        const treeCount = map.current ? countTreesInPolygon(map.current, feature.geometry as GeoJSON.Geometry) : undefined;
+          const feature = e.features[0];
+          const coordinates = e.lngLat;
+          const osmId = feature.id; // osmium export uses top-level id field with type_id format
+          const propsObj = feature.properties as Record<string, any> | null;
 
-        new mapboxgl.Popup()
-          .setLngLat(coordinates)
-          .setHTML(createOSMPopupHTML({
-            title: 'Streuobstwiese',
-            description: 'Traditionelle Streuobstwiese mit verschiedenen Obstsorten',
-            osmId: osmId ? String(osmId) : undefined,
-            areaM2,
-            treeCount
-          }))
-          .addTo(map.current!);
-      });
+          // Measure mode: toggle selection instead of showing popup
+          if (isMeasureModeRef.current && osmId != null) {
+            const key = `streuobstwiesen:${osmId}`;
+            if (selectedFeatureIds.current.has(key)) {
+              selectedFeatureIds.current.delete(key);
+              map.current?.setFeatureState(
+                {
+                  source: "streuobstwiesen",
+                  sourceLayer: "streuobstwiesen",
+                  id: osmId,
+                },
+                { selected: false },
+              );
+              setSelectedFeatures((prev) =>
+                prev.filter((f) => `${f.sourceLayer}:${f.id}` !== key),
+              );
+            } else {
+              selectedFeatureIds.current.add(key);
+              map.current?.setFeatureState(
+                {
+                  source: "streuobstwiesen",
+                  sourceLayer: "streuobstwiesen",
+                  id: osmId,
+                },
+                { selected: true },
+              );
+              const areaM2 = calculateAreaM2(
+                feature.geometry as GeoJSON.Geometry,
+              );
+              const center = getFeatureCenter(
+                feature.geometry as GeoJSON.Geometry,
+              );
+              const treeCount = map.current
+                ? countTreesInPolygon(
+                    map.current,
+                    feature.geometry as GeoJSON.Geometry,
+                  )
+                : undefined;
+              const name = propsObj?.name as string | undefined;
+              setSelectedFeatures((prev) => [
+                ...prev,
+                {
+                  id: osmId,
+                  sourceLayer: "streuobstwiesen",
+                  areaM2,
+                  center,
+                  name,
+                  treeCount,
+                },
+              ]);
+              if (isTreeAutoDetectRef.current) handleDetectTrees(String(osmId));
+            }
+            return;
+          }
 
-      map.current?.on('click', 'baeume-circle', (e: mapboxgl.MapMouseEvent) => {
+          const areaM2 = calculateAreaM2(feature.geometry as GeoJSON.Geometry);
+          const treeCount = map.current
+            ? countTreesInPolygon(
+                map.current,
+                feature.geometry as GeoJSON.Geometry,
+              )
+            : undefined;
+
+          new mapboxgl.Popup()
+            .setLngLat(coordinates)
+            .setHTML(
+              createOSMPopupHTML({
+                title: "Streuobstwiese",
+                description:
+                  "Traditionelle Streuobstwiese mit verschiedenen Obstsorten",
+                osmId: osmId ? String(osmId) : undefined,
+                areaM2,
+                treeCount,
+              }),
+            )
+            .addTo(map.current!);
+        },
+      );
+
+      map.current?.on("click", "baeume-circle", (e: mapboxgl.MapMouseEvent) => {
         if (!e.features || !e.features[0]) return;
 
         // Only activate click events at zoom level 11 and above
@@ -947,165 +1128,204 @@ export default function MapPage() {
 
         const feature = e.features[0];
         const coordinates = e.lngLat;
-        const osmId = feature.id;  // osmium export uses top-level id field with type_id format
+        const osmId = feature.id; // osmium export uses top-level id field with type_id format
         const propsObj = feature.properties as Record<string, any> | null;
 
         new mapboxgl.Popup()
           .setLngLat(coordinates)
-          .setHTML(createOSMPopupHTML({
-            title: 'Obstbaum',
-            osmId: osmId ? String(osmId) : undefined,
-            showOSMTags: true,
-            properties: propsObj ?? undefined,
-          }))
+          .setHTML(
+            createOSMPopupHTML({
+              title: "Obstbaum",
+              osmId: osmId ? String(osmId) : undefined,
+              showOSMTags: true,
+              properties: propsObj ?? undefined,
+            }),
+          )
           .addTo(map.current!);
       });
 
       // Change cursor on hover for streuobstwiesen layers
-      map.current?.on('mouseenter', 'wiesen-fill', () => {
+      map.current?.on("mouseenter", "wiesen-fill", () => {
         // Only show cursor at zoom level 11 and above
         const currentZoom = map.current?.getZoom() || 0;
         if (currentZoom >= 11) {
-          map.current!.getCanvas().style.cursor = isMeasureModeRef.current ? 'crosshair' : 'pointer';
+          map.current!.getCanvas().style.cursor = isMeasureModeRef.current
+            ? "crosshair"
+            : "pointer";
         }
       });
 
-      map.current?.on('mouseleave', 'wiesen-fill', () => {
-        map.current!.getCanvas().style.cursor = isMeasureModeRef.current ? 'crosshair' : '';
+      map.current?.on("mouseleave", "wiesen-fill", () => {
+        map.current!.getCanvas().style.cursor = isMeasureModeRef.current
+          ? "crosshair"
+          : "";
       });
 
-      map.current?.on('mouseenter', 'streuobstwiesen-fill', () => {
+      map.current?.on("mouseenter", "streuobstwiesen-fill", () => {
         const currentZoom = map.current?.getZoom() || 0;
         if (currentZoom < 8) return;
-        map.current!.getCanvas().style.cursor = isMeasureModeRef.current ? 'crosshair' : 'pointer';
+        map.current!.getCanvas().style.cursor = isMeasureModeRef.current
+          ? "crosshair"
+          : "pointer";
       });
 
-      map.current?.on('mouseleave', 'streuobstwiesen-fill', () => {
-        map.current!.getCanvas().style.cursor = isMeasureModeRef.current ? 'crosshair' : '';
+      map.current?.on("mouseleave", "streuobstwiesen-fill", () => {
+        map.current!.getCanvas().style.cursor = isMeasureModeRef.current
+          ? "crosshair"
+          : "";
       });
 
-      map.current?.on('mouseenter', 'baeume-circle', () => {
+      map.current?.on("mouseenter", "baeume-circle", () => {
         // Only show pointer cursor at zoom level 11 and above
         const currentZoom = map.current?.getZoom() || 0;
         if (currentZoom >= 11) {
-          map.current!.getCanvas().style.cursor = 'pointer';
+          map.current!.getCanvas().style.cursor = "pointer";
         }
       });
 
-      map.current?.on('mouseleave', 'baeume-circle', () => {
-        map.current!.getCanvas().style.cursor = '';
+      map.current?.on("mouseleave", "baeume-circle", () => {
+        map.current!.getCanvas().style.cursor = "";
       });
 
       // Change cursor on hover for partner logos and circles
-      map.current?.on('mouseenter', 'partner-logos', () => {
-        map.current!.getCanvas().style.cursor = 'pointer';
+      map.current?.on("mouseenter", "partner-logos", () => {
+        map.current!.getCanvas().style.cursor = "pointer";
       });
-      map.current?.on('mouseleave', 'partner-logos', () => {
-        map.current!.getCanvas().style.cursor = '';
+      map.current?.on("mouseleave", "partner-logos", () => {
+        map.current!.getCanvas().style.cursor = "";
       });
-      map.current?.on('mouseenter', 'partner-circles', () => {
-        map.current!.getCanvas().style.cursor = 'pointer';
+      map.current?.on("mouseenter", "partner-circles", () => {
+        map.current!.getCanvas().style.cursor = "pointer";
       });
-      map.current?.on('mouseleave', 'partner-circles', () => {
-        map.current!.getCanvas().style.cursor = '';
+      map.current?.on("mouseleave", "partner-circles", () => {
+        map.current!.getCanvas().style.cursor = "";
       });
 
       // Streuobst routes layer
-      map.current?.addSource('streuobst-routes', {
-        type: 'geojson',
-        data: '/streuobst_routes.geojson',
+      map.current?.addSource("streuobst-routes", {
+        type: "geojson",
+        data: "/streuobst_routes.geojson",
         generateId: true,
       });
 
       // Wide invisible layer for easier clicking
       map.current?.addLayer({
-        id: 'streuobst-routes-click',
-        type: 'line',
-        source: 'streuobst-routes',
-        layout: { 'line-join': 'round', 'line-cap': 'round' },
-        paint: { 'line-color': 'rgba(0,0,0,0)', 'line-width': 16 },
+        id: "streuobst-routes-click",
+        type: "line",
+        source: "streuobst-routes",
+        layout: { "line-join": "round", "line-cap": "round" },
+        paint: { "line-color": "rgba(0,0,0,0)", "line-width": 16 },
       });
 
       // Visible route line
       map.current?.addLayer({
-        id: 'streuobst-routes-line',
-        type: 'line',
-        source: 'streuobst-routes',
-        layout: { 'line-join': 'round', 'line-cap': 'round' },
+        id: "streuobst-routes-line",
+        type: "line",
+        source: "streuobst-routes",
+        layout: { "line-join": "round", "line-cap": "round" },
         paint: {
-          'line-color': '#754c82',
-          'line-width': ['interpolate', ['linear'], ['zoom'],
-            6, ['case', ['boolean', ['feature-state', 'selected'], false], 4, 2],
-            12, ['case', ['boolean', ['feature-state', 'selected'], false], 7, 4],
+          "line-color": "#754c82",
+          "line-width": [
+            "interpolate",
+            ["linear"],
+            ["zoom"],
+            6,
+            ["case", ["boolean", ["feature-state", "selected"], false], 4, 2],
+            12,
+            ["case", ["boolean", ["feature-state", "selected"], false], 7, 4],
           ],
-          'line-opacity': ['case', ['boolean', ['feature-state', 'selected'], false], 1, 0.75],
+          "line-opacity": [
+            "case",
+            ["boolean", ["feature-state", "selected"], false],
+            1,
+            0.75,
+          ],
         },
       });
 
       // Animated dashed overlay for selected route (marching ants)
       map.current?.addLayer({
-        id: 'streuobst-routes-selected',
-        type: 'line',
-        source: 'streuobst-routes',
-        layout: { 'line-join': 'round', 'line-cap': 'butt' },
+        id: "streuobst-routes-selected",
+        type: "line",
+        source: "streuobst-routes",
+        layout: { "line-join": "round", "line-cap": "butt" },
         paint: {
-          'line-color': 'rgba(255,255,255,0.85)',
-          'line-width': ['interpolate', ['linear'], ['zoom'], 6, 2.5, 12, 4.5],
-          'line-dasharray': [3, 4],
-          'line-opacity': ['case', ['boolean', ['feature-state', 'selected'], false], 1, 0],
+          "line-color": "rgba(255,255,255,0.85)",
+          "line-width": ["interpolate", ["linear"], ["zoom"], 6, 2.5, 12, 4.5],
+          "line-dasharray": [3, 4],
+          "line-opacity": [
+            "case",
+            ["boolean", ["feature-state", "selected"], false],
+            1,
+            0,
+          ],
         },
       } as any);
 
       // Route click handler
-      map.current?.on('click', 'streuobst-routes-click', (e: mapboxgl.MapMouseEvent) => {
-        if (!e.features || !e.features[0]) return;
-        e.preventDefault();
-        const feature = e.features[0];
-        const props = feature.properties as Record<string, unknown>;
+      map.current?.on(
+        "click",
+        "streuobst-routes-click",
+        (e: mapboxgl.MapMouseEvent) => {
+          if (!e.features || !e.features[0]) return;
+          e.preventDefault();
+          const feature = e.features[0];
+          const props = feature.properties as Record<string, unknown>;
 
-        if (selectedRouteFeatureId.current !== null) {
-          map.current?.setFeatureState(
-            { source: 'streuobst-routes', id: selectedRouteFeatureId.current },
-            { selected: false }
-          );
-        }
-        if (feature.id !== undefined) {
-          selectedRouteFeatureId.current = feature.id as number | string;
-          map.current?.setFeatureState(
-            { source: 'streuobst-routes', id: feature.id },
-            { selected: true }
-          );
-        }
-        const imageUrls = typeof props.image_urls === 'string'
-          ? (props.image_urls === 'null' ? null : JSON.parse(props.image_urls as string))
-          : props.image_urls as string[] | null;
-        setSelectedRoute({
-          name: props.name as string,
-          description_html: props.description_html as string | null,
-          url: props.url as string | null,
-          trail_type: props.trail_type as string | null,
-          circular: props.circular as string,
-          length_m: props.length_m as number | null,
-          uphill_m: props.uphill_m as number | null,
-          downhill_m: props.downhill_m as number | null,
-          duration: props.duration as string | null,
-          license: props.license as string | null,
-          license_url: props.license_url as string | null,
-          publisher_name: props.publisher_name as string,
-          publisher_url: props.publisher_url as string | null,
-          image_urls: imageUrls,
-          geometry: feature.geometry.type === 'MultiLineString'
-            ? (feature.geometry as GeoJSON.MultiLineString).coordinates.flat() as number[][]
-            : (feature.geometry as GeoJSON.LineString).coordinates as number[][],
-        });
-        setSidebarOpen(true);
-      });
+          if (selectedRouteFeatureId.current !== null) {
+            map.current?.setFeatureState(
+              {
+                source: "streuobst-routes",
+                id: selectedRouteFeatureId.current,
+              },
+              { selected: false },
+            );
+          }
+          if (feature.id !== undefined) {
+            selectedRouteFeatureId.current = feature.id as number | string;
+            map.current?.setFeatureState(
+              { source: "streuobst-routes", id: feature.id },
+              { selected: true },
+            );
+          }
+          const imageUrls =
+            typeof props.image_urls === "string"
+              ? props.image_urls === "null"
+                ? null
+                : JSON.parse(props.image_urls as string)
+              : (props.image_urls as string[] | null);
+          setSelectedRoute({
+            name: props.name as string,
+            description_html: props.description_html as string | null,
+            url: props.url as string | null,
+            trail_type: props.trail_type as string | null,
+            circular: props.circular as string,
+            length_m: props.length_m as number | null,
+            uphill_m: props.uphill_m as number | null,
+            downhill_m: props.downhill_m as number | null,
+            duration: props.duration as string | null,
+            license: props.license as string | null,
+            license_url: props.license_url as string | null,
+            publisher_name: props.publisher_name as string,
+            publisher_url: props.publisher_url as string | null,
+            image_urls: imageUrls,
+            geometry:
+              feature.geometry.type === "MultiLineString"
+                ? ((
+                    feature.geometry as GeoJSON.MultiLineString
+                  ).coordinates.flat() as number[][])
+                : ((feature.geometry as GeoJSON.LineString)
+                    .coordinates as number[][]),
+          });
+          setSidebarOpen(true);
+        },
+      );
 
-      map.current?.on('mouseenter', 'streuobst-routes-click', () => {
-        map.current!.getCanvas().style.cursor = 'pointer';
+      map.current?.on("mouseenter", "streuobst-routes-click", () => {
+        map.current!.getCanvas().style.cursor = "pointer";
       });
-      map.current?.on('mouseleave', 'streuobst-routes-click', () => {
-        map.current!.getCanvas().style.cursor = '';
+      map.current?.on("mouseleave", "streuobst-routes-click", () => {
+        map.current!.getCanvas().style.cursor = "";
       });
 
       // Bounds check for historical aerials (BW only)
@@ -1114,12 +1334,14 @@ export default function MapPage() {
         const b = map.current.getBounds();
         if (!b) return;
         const overlaps = !(
-          b.getEast() < BW_BOUNDS.west || b.getWest() > BW_BOUNDS.east ||
-          b.getNorth() < BW_BOUNDS.south || b.getSouth() > BW_BOUNDS.north
+          b.getEast() < BW_BOUNDS.west ||
+          b.getWest() > BW_BOUNDS.east ||
+          b.getNorth() < BW_BOUNDS.south ||
+          b.getSouth() > BW_BOUNDS.north
         );
         setIsInBWBounds(overlaps);
       };
-      map.current?.on('moveend', checkBWBounds);
+      map.current?.on("moveend", checkBWBounds);
       checkBWBounds();
     });
 
@@ -1139,52 +1361,78 @@ export default function MapPage() {
     const center = map.current.getCenter();
     const zoom = map.current.getZoom();
     const editorUrl = createOsmEditorUrl(center.lng, center.lat, zoom);
-    window.open(editorUrl, '_blank');
+    window.open(editorUrl, "_blank");
   };
 
   // Shared helper: update vector layer colors based on active overlay layers
-  const updateVectorLayerColors = (satActive: boolean, aerialActive: boolean) => {
+  const updateVectorLayerColors = (
+    satActive: boolean,
+    aerialActive: boolean,
+  ) => {
     if (!map.current) return;
     const overlayActive = satActive || aerialActive;
 
-    const wiesenLayer = map.current.getLayer('wiesen-fill');
+    const wiesenLayer = map.current.getLayer("wiesen-fill");
     if (wiesenLayer) {
       const wiesenColor = aerialActive
-        ? [
-          'case',
-          ['==', ['get', 'orchard'], 'meadow_orchard'], '#E2A8FB', // Purple for orchards over aerial
-          ['==', ['get', 'orchard'], 'plantation'], '#9CA3AF',
-          '#FF8C00' // Orange for others over aerial
-        ] as any
+        ? ([
+            "case",
+            ["==", ["get", "orchard"], "meadow_orchard"],
+            "#E2A8FB", // Purple for orchards over aerial
+            ["==", ["get", "orchard"], "plantation"],
+            "#9CA3AF",
+            "#FF8C00", // Orange for others over aerial
+          ] as any)
         : overlayActive
-          ? [
-            'case',
-            ['==', ['get', 'orchard'], 'meadow_orchard'], '#FF8C00',
-            ['==', ['get', 'orchard'], 'plantation'], '#9CA3AF',
-            '#E2A8FB' // Purple for others over satellite
-          ] as any
-          : [
-            'case',
-            ['==', ['get', 'orchard'], 'meadow_orchard'], '#FF8C00',
-            ['==', ['get', 'orchard'], 'plantation'], '#9CA3AF',
-            '#667302' // Original
-          ] as any;
+          ? ([
+              "case",
+              ["==", ["get", "orchard"], "meadow_orchard"],
+              "#FF8C00",
+              ["==", ["get", "orchard"], "plantation"],
+              "#9CA3AF",
+              "#E2A8FB", // Purple for others over satellite
+            ] as any)
+          : ([
+              "case",
+              ["==", ["get", "orchard"], "meadow_orchard"],
+              "#FF8C00",
+              ["==", ["get", "orchard"], "plantation"],
+              "#9CA3AF",
+              "#667302", // Original
+            ] as any);
 
-      map.current.setPaintProperty('wiesen-fill', 'fill-color', wiesenColor);
+      map.current.setPaintProperty("wiesen-fill", "fill-color", wiesenColor);
 
       const wiesenOpacity = overlayActive
-        ? ['interpolate', ['linear'], ['zoom'], 11, 1.0, 12, 0.55] as any
-        : ['case', ['==', ['get', 'orchard'], 'meadow_orchard'], 0.6, 0.5] as any;
-      map.current.setPaintProperty('wiesen-fill', 'fill-opacity', wiesenOpacity);
+        ? (["interpolate", ["linear"], ["zoom"], 11, 1.0, 12, 0.55] as any)
+        : ([
+            "case",
+            ["==", ["get", "orchard"], "meadow_orchard"],
+            0.6,
+            0.5,
+          ] as any);
+      map.current.setPaintProperty(
+        "wiesen-fill",
+        "fill-opacity",
+        wiesenOpacity,
+      );
     }
 
-    const streuobstLayer = map.current.getLayer('streuobstwiesen-fill');
+    const streuobstLayer = map.current.getLayer("streuobstwiesen-fill");
     if (streuobstLayer) {
-      map.current.setPaintProperty('streuobstwiesen-fill', 'fill-color', aerialActive ? '#E2A8FB' : '#FF8C00');
+      map.current.setPaintProperty(
+        "streuobstwiesen-fill",
+        "fill-color",
+        aerialActive ? "#E2A8FB" : "#FF8C00",
+      );
       const streuobstOpacity = overlayActive
-        ? ['interpolate', ['linear'], ['zoom'], 11, 1.0, 12, 0.6] as any
+        ? (["interpolate", ["linear"], ["zoom"], 11, 1.0, 12, 0.6] as any)
         : 0.6;
-      map.current.setPaintProperty('streuobstwiesen-fill', 'fill-opacity', streuobstOpacity);
+      map.current.setPaintProperty(
+        "streuobstwiesen-fill",
+        "fill-opacity",
+        streuobstOpacity,
+      );
     }
   };
 
@@ -1192,13 +1440,20 @@ export default function MapPage() {
   const toggleSatelliteView = () => {
     if (!map.current) return;
 
-    const satelliteLayer = map.current.getLayer('satellite-layer');
+    const satelliteLayer = map.current.getLayer("satellite-layer");
     if (!satelliteLayer) return;
 
-    const currentVisibility = map.current.getLayoutProperty('satellite-layer', 'visibility');
-    const newSatActive = currentVisibility !== 'visible';
+    const currentVisibility = map.current.getLayoutProperty(
+      "satellite-layer",
+      "visibility",
+    );
+    const newSatActive = currentVisibility !== "visible";
 
-    map.current.setLayoutProperty('satellite-layer', 'visibility', newSatActive ? 'visible' : 'none');
+    map.current.setLayoutProperty(
+      "satellite-layer",
+      "visibility",
+      newSatActive ? "visible" : "none",
+    );
     setIsSatelliteView(newSatActive);
 
     const anyAerialActive = Object.values(aerialLayersVisible).some(Boolean);
@@ -1207,14 +1462,18 @@ export default function MapPage() {
 
   // Clear all measure selections
   const clearMeasureSelection = (clearSession = false) => {
-    selectedFeatureIds.current.forEach(key => {
-      const colonIdx = key.indexOf(':');
+    selectedFeatureIds.current.forEach((key) => {
+      const colonIdx = key.indexOf(":");
       const sourceLayer = key.slice(0, colonIdx);
       const id = key.slice(colonIdx + 1);
       const numId = Number(id);
       map.current?.setFeatureState(
-        { source: 'streuobstwiesen', sourceLayer, id: isNaN(numId) ? id : numId },
-        { selected: false }
+        {
+          source: "streuobstwiesen",
+          sourceLayer,
+          id: isNaN(numId) ? id : numId,
+        },
+        { selected: false },
       );
     });
     selectedFeatureIds.current.clear();
@@ -1239,25 +1498,27 @@ export default function MapPage() {
       const session = loadMeasureSession();
       if (session && session.features.length > 0) {
         // Re-apply feature highlight states and selection set
-        session.features.forEach(f => {
+        session.features.forEach((f) => {
           const key = `${f.sourceLayer}:${f.id}`;
           selectedFeatureIds.current.add(key);
           map.current?.setFeatureState(
-            { source: 'streuobstwiesen', sourceLayer: f.sourceLayer, id: f.id },
-            { selected: true }
+            { source: "streuobstwiesen", sourceLayer: f.sourceLayer, id: f.id },
+            { selected: true },
           );
         });
         setSelectedFeatures(session.features);
 
         // Re-load detected tree geometries from IndexedDB for the map layer
-        const featuresWithDetection = session.features.filter(f => f.detectedTreeCount != null);
+        const featuresWithDetection = session.features.filter(
+          (f) => f.detectedTreeCount != null,
+        );
         if (featuresWithDetection.length > 0) {
           const treeFeatures: GeoJSON.Feature[] = [];
           await Promise.all(
-            featuresWithDetection.map(async f => {
+            featuresWithDetection.map(async (f) => {
               const cached = await getCachedTrees(String(f.id));
               if (cached) treeFeatures.push(...cached.features);
-            })
+            }),
           );
           if (treeFeatures.length > 0) {
             detectedTreeFeatures.current = treeFeatures;
@@ -1268,14 +1529,16 @@ export default function MapPage() {
     }
 
     if (map.current) {
-      map.current.getCanvas().style.cursor = entering ? 'crosshair' : '';
+      map.current.getCanvas().style.cursor = entering ? "crosshair" : "";
     }
   };
 
   // Tree detection helpers
   const updateDetectedTreesLayer = (features: GeoJSON.Feature[]) => {
-    const src = map.current?.getSource('detected-trees') as mapboxgl.GeoJSONSource | undefined;
-    src?.setData({ type: 'FeatureCollection', features });
+    const src = map.current?.getSource("detected-trees") as
+      | mapboxgl.GeoJSONSource
+      | undefined;
+    src?.setData({ type: "FeatureCollection", features });
   };
 
   const handleDetectTrees = async (osmId: string) => {
@@ -1287,38 +1550,63 @@ export default function MapPage() {
         ...cached.features,
       ];
       updateDetectedTreesLayer(detectedTreeFeatures.current);
-      setSelectedFeatures(prev => prev.map(f =>
-        String(f.id) === osmId ? { ...f, detectedTreeCount: cached.features.length } : f
-      ));
+      setSelectedFeatures((prev) =>
+        prev.map((f) =>
+          String(f.id) === osmId
+            ? { ...f, detectedTreeCount: cached.features.length }
+            : f,
+        ),
+      );
       return;
     }
 
-    setLoadingTreeIds(prev => new Set(prev).add(osmId));
+    setLoadingTreeIds((prev) => new Set(prev).add(osmId));
     try {
       const controller = new AbortController();
       const abortTimer = setTimeout(() => controller.abort(), 200_000);
       let resp: Response;
       try {
-        resp = await fetch(`/api/trees/${osmId}`, { signal: controller.signal });
+        resp = await fetch(`/api/trees/${osmId}`, {
+          signal: controller.signal,
+        });
       } finally {
         clearTimeout(abortTimer);
       }
       if (!resp.ok) {
-        setSelectedFeatures(prev => prev.map(f =>
-          String(f.id) === osmId ? { ...f, treeDetectionFailed: true } : f
-        ));
-        let detail = '';
-        try { detail = (await resp.json()).detail ?? ''; } catch { /* ignore */ }
+        setSelectedFeatures((prev) =>
+          prev.map((f) =>
+            String(f.id) === osmId ? { ...f, treeDetectionFailed: true } : f,
+          ),
+        );
+        let detail = "";
+        try {
+          detail = (await resp.json()).detail ?? "";
+        } catch {
+          /* ignore */
+        }
         if (resp.status === 404) {
-          addToast('Fläche nicht gefunden – die OSM-ID ist im System nicht bekannt.');
-        } else if (resp.status === 422 && detail.includes('außerhalb Baden-Württembergs')) {
-          addToast('Diese Fläche liegt außerhalb Baden-Württembergs. Die automatische Baumerkennung ist derzeit nur für BW verfügbar.');
+          addToast(
+            "Fläche nicht gefunden – die OSM-ID ist im System nicht bekannt.",
+          );
+        } else if (
+          resp.status === 422 &&
+          detail.includes("außerhalb Baden-Württembergs")
+        ) {
+          addToast(
+            "Diese Fläche liegt außerhalb Baden-Württembergs. Die automatische Baumerkennung ist derzeit nur für BW verfügbar.",
+          );
         } else if (resp.status === 422) {
-          addToast('Berechnung fehlgeschlagen: Keine Höhendaten für diese Fläche verfügbar.');
+          addToast(
+            "Berechnung fehlgeschlagen: Keine Höhendaten für diese Fläche verfügbar.",
+          );
         } else if (resp.status === 429) {
-          addToast('Zu viele Anfragen. Bitte warte kurz und versuche es erneut.');
+          addToast(
+            "Zu viele Anfragen. Bitte warte kurz und versuche es erneut.",
+          );
         } else if (resp.status === 504) {
-          addToast('Zeitüberschreitung – die Fläche ist möglicherweise zu groß oder der Server ausgelastet.');
+          addToast(
+            "Zeitüberschreitung – die Fläche ist möglicherweise zu groß oder der Server ausgelastet.",
+          );
         } else {
           addToast(`Baumerkennung fehlgeschlagen (Fehler ${resp.status}).`);
         }
@@ -1331,21 +1619,35 @@ export default function MapPage() {
         ...geojson.features,
       ];
       updateDetectedTreesLayer(detectedTreeFeatures.current);
-      setSelectedFeatures(prev => prev.map(f =>
-        String(f.id) === osmId ? { ...f, detectedTreeCount: geojson.features.length, treeDetectionFailed: false } : f
-      ));
+      setSelectedFeatures((prev) =>
+        prev.map((f) =>
+          String(f.id) === osmId
+            ? {
+                ...f,
+                detectedTreeCount: geojson.features.length,
+                treeDetectionFailed: false,
+              }
+            : f,
+        ),
+      );
     } catch (err) {
-      console.error('Tree detection failed:', err);
-      setSelectedFeatures(prev => prev.map(f =>
-        String(f.id) === osmId ? { ...f, treeDetectionFailed: true } : f
-      ));
+      console.error("Tree detection failed:", err);
+      setSelectedFeatures((prev) =>
+        prev.map((f) =>
+          String(f.id) === osmId ? { ...f, treeDetectionFailed: true } : f,
+        ),
+      );
       if (err instanceof DOMException) {
-        addToast('Zeitüberschreitung – die Fläche ist möglicherweise zu groß oder der Server ausgelastet.');
+        addToast(
+          "Zeitüberschreitung – die Fläche ist möglicherweise zu groß oder der Server ausgelastet.",
+        );
       } else {
-        addToast('Verbindung zur Baumerkennung fehlgeschlagen. Bitte später erneut versuchen.');
+        addToast(
+          "Verbindung zur Baumerkennung fehlgeschlagen. Bitte später erneut versuchen.",
+        );
       }
     } finally {
-      setLoadingTreeIds(prev => {
+      setLoadingTreeIds((prev) => {
         const s = new Set(prev);
         s.delete(osmId);
         return s;
@@ -1359,15 +1661,18 @@ export default function MapPage() {
     setIs3DMode(entering);
     if (!map.current) return;
     if (entering) {
-      map.current.setTerrain({ source: 'mapterhorn-terrain', exaggeration: 1.5 });
-      map.current.setLayoutProperty('hillshade', 'visibility', 'visible');
+      map.current.setTerrain({
+        source: "mapterhorn-terrain",
+        exaggeration: 1.5,
+      });
+      map.current.setLayoutProperty("hillshade", "visibility", "visible");
       // Only set pitch if the user hasn't already tilted the map and zoom is close enough
       if (map.current.getPitch() === 0 && map.current.getZoom() > 11) {
         map.current.easeTo({ pitch: 45, duration: 600 });
       }
     } else {
       map.current.setTerrain(null);
-      map.current.setLayoutProperty('hillshade', 'visibility', 'none');
+      map.current.setLayoutProperty("hillshade", "visibility", "none");
       map.current.easeTo({ pitch: 0, duration: 600 });
     }
   };
@@ -1376,23 +1681,26 @@ export default function MapPage() {
     if (!map.current) return;
     const mapLayerId = `pa-layer-${layerId}`;
     if (!map.current.getLayer(mapLayerId)) return;
-    const current = map.current.getLayoutProperty(mapLayerId, 'visibility');
-    const next = current === 'visible' ? 'none' : 'visible';
-    map.current.setLayoutProperty(mapLayerId, 'visibility', next);
-    setProtectedLayersVisible(prev => ({ ...prev, [layerId]: next === 'visible' }));
+    const current = map.current.getLayoutProperty(mapLayerId, "visibility");
+    const next = current === "visible" ? "none" : "visible";
+    map.current.setLayoutProperty(mapLayerId, "visibility", next);
+    setProtectedLayersVisible((prev) => ({
+      ...prev,
+      [layerId]: next === "visible",
+    }));
   };
 
   const toggleAllProtectedLayers = () => {
     if (!map.current) return;
     const anyVisible = Object.values(protectedLayersVisible).some(Boolean);
-    const next = anyVisible ? 'none' : 'visible';
+    const next = anyVisible ? "none" : "visible";
     const update: Record<string, boolean> = {};
     for (const layerId of Object.keys(protectedLayersVisible)) {
       const mapLayerId = `pa-layer-${layerId}`;
       if (map.current.getLayer(mapLayerId)) {
-        map.current.setLayoutProperty(mapLayerId, 'visibility', next);
+        map.current.setLayoutProperty(mapLayerId, "visibility", next);
       }
-      update[layerId] = next === 'visible';
+      update[layerId] = next === "visible";
     }
     setProtectedLayersVisible(update);
   };
@@ -1401,12 +1709,15 @@ export default function MapPage() {
     if (!map.current) return;
     const mapLayerId = `hist-layer-${year}`;
     if (!map.current.getLayer(mapLayerId)) return;
-    const current = map.current.getLayoutProperty(mapLayerId, 'visibility');
-    const next = current === 'visible' ? 'none' : 'visible';
-    map.current.setLayoutProperty(mapLayerId, 'visibility', next);
-    setAerialLayersVisible(prev => {
-      const updated = { ...prev, [year]: next === 'visible' };
-      updateVectorLayerColors(isSatelliteView, Object.values(updated).some(Boolean));
+    const current = map.current.getLayoutProperty(mapLayerId, "visibility");
+    const next = current === "visible" ? "none" : "visible";
+    map.current.setLayoutProperty(mapLayerId, "visibility", next);
+    setAerialLayersVisible((prev) => {
+      const updated = { ...prev, [year]: next === "visible" };
+      updateVectorLayerColors(
+        isSatelliteView,
+        Object.values(updated).some(Boolean),
+      );
       return updated;
     });
   };
@@ -1414,34 +1725,39 @@ export default function MapPage() {
   const toggleAllAerialLayers = () => {
     if (!map.current) return;
     const anyVisible = Object.values(aerialLayersVisible).some(Boolean);
-    const next = anyVisible ? 'none' : 'visible';
+    const next = anyVisible ? "none" : "visible";
     const update: Record<string, boolean> = {};
     for (const year of Object.keys(aerialLayersVisible)) {
       const mapLayerId = `hist-layer-${year}`;
       if (map.current.getLayer(mapLayerId)) {
-        map.current.setLayoutProperty(mapLayerId, 'visibility', next);
+        map.current.setLayoutProperty(mapLayerId, "visibility", next);
       }
-      update[year] = next === 'visible';
+      update[year] = next === "visible";
     }
     setAerialLayersVisible(update);
-    updateVectorLayerColors(isSatelliteView, next === 'visible');
+    updateVectorLayerColors(isSatelliteView, next === "visible");
   };
 
   const toggleGroupAerialLayers = (group: string) => {
     if (!map.current) return;
-    const groupYears = HISTORICAL_AERIAL_LAYERS.filter(l => l.group === group).map(l => l.id);
-    const anyGroupVisible = groupYears.some(y => aerialLayersVisible[y]);
-    const next = anyGroupVisible ? 'none' : 'visible';
+    const groupYears = HISTORICAL_AERIAL_LAYERS.filter(
+      (l) => l.group === group,
+    ).map((l) => l.id);
+    const anyGroupVisible = groupYears.some((y) => aerialLayersVisible[y]);
+    const next = anyGroupVisible ? "none" : "visible";
     const update: Record<string, boolean> = { ...aerialLayersVisible };
     for (const year of groupYears) {
       const mapLayerId = `hist-layer-${year}`;
       if (map.current.getLayer(mapLayerId)) {
-        map.current.setLayoutProperty(mapLayerId, 'visibility', next);
+        map.current.setLayoutProperty(mapLayerId, "visibility", next);
       }
-      update[year] = next === 'visible';
+      update[year] = next === "visible";
     }
     setAerialLayersVisible(update);
-    updateVectorLayerColors(isSatelliteView, Object.values(update).some(Boolean));
+    updateVectorLayerColors(
+      isSatelliteView,
+      Object.values(update).some(Boolean),
+    );
   };
 
   const toggleTreeAutoDetect = () => {
@@ -1451,11 +1767,17 @@ export default function MapPage() {
     if (!entering) {
       detectedTreeFeatures.current = [];
       updateDetectedTreesLayer([]);
-      setSelectedFeatures(prev => prev.map(f => ({ ...f, detectedTreeCount: undefined, treeDetectionFailed: false })));
+      setSelectedFeatures((prev) =>
+        prev.map((f) => ({
+          ...f,
+          detectedTreeCount: undefined,
+          treeDetectionFailed: false,
+        })),
+      );
     } else {
       // Trigger detection for already-selected features
-      setSelectedFeatures(prev => {
-        prev.forEach(f => {
+      setSelectedFeatures((prev) => {
+        prev.forEach((f) => {
           if (f.detectedTreeCount == null) handleDetectTrees(String(f.id));
         });
         return prev;
@@ -1465,18 +1787,18 @@ export default function MapPage() {
 
   // Sync label markers on the map with selected features
   useEffect(() => {
-    labelMarkersRef.current.forEach(m => m.remove());
+    labelMarkersRef.current.forEach((m) => m.remove());
     labelMarkersRef.current = [];
     labelDataRef.current = [];
 
     if (!isMeasureMode || !map.current) return;
 
     selectedFeatures.forEach((f, i) => {
-      const el = document.createElement('div');
+      const el = document.createElement("div");
       const datum: LabelDatum = { el, feature: f, index: i };
       applyLabelStyle(datum);
 
-      const marker = new mapboxgl.Marker({ element: el, anchor: 'center' })
+      const marker = new mapboxgl.Marker({ element: el, anchor: "center" })
         .setLngLat(f.center)
         .addTo(map.current!);
       labelMarkersRef.current.push(marker);
@@ -1484,21 +1806,18 @@ export default function MapPage() {
     });
 
     return () => {
-      labelMarkersRef.current.forEach(m => m.remove());
+      labelMarkersRef.current.forEach((m) => m.remove());
       labelMarkersRef.current = [];
       labelDataRef.current = [];
     };
   }, [selectedFeatures, isMeasureMode]);
 
-
   // Clear search helper
   const handleClearSearch = () => {
-    setSearchQuery('');
+    setSearchQuery("");
     setSearchResults([]);
     setShowSearchResults(false);
   };
-
-
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
@@ -1507,7 +1826,6 @@ export default function MapPage() {
         <div className="flex-1 relative min-h-0">
           {/* Map Container - Full Screen on Mobile */}
           <div ref={mapContainer} className="w-full h-full" />
-
 
           {/* Mobile Toggle Button - Top Left */}
           <div className="absolute top-4 left-4 z-20">
@@ -1534,9 +1852,15 @@ export default function MapPage() {
           >
             <Sheet.Container id="map-sidebar-mobile">
               <Sheet.Header />
-              <Sheet.Content disableDrag scrollStyle={{ paddingBottom: sheetPaddingBottom }}>
+              <Sheet.Content
+                disableDrag
+                scrollStyle={{ paddingBottom: sheetPaddingBottom }}
+              >
                 {selectedRoute ? (
-                  <RouteDetailPanel route={selectedRoute} onClose={closeSelectedRoute} />
+                  <RouteDetailPanel
+                    route={selectedRoute}
+                    onClose={closeSelectedRoute}
+                  />
                 ) : (
                   <>
                     {/* Search in Sheet */}
@@ -1557,7 +1881,11 @@ export default function MapPage() {
                       <RecentSearches onSearchClick={handleRecentSearchClick} />
                     </div>
 
-                    <MapLegend onClose={() => setSidebarOpen(false)} showCloseButton={true} lastUpdated={lastUpdated} />
+                    <MapLegend
+                      onClose={() => setSidebarOpen(false)}
+                      showCloseButton={true}
+                      lastUpdated={lastUpdated}
+                    />
                   </>
                 )}
               </Sheet.Content>
@@ -1589,12 +1917,18 @@ export default function MapPage() {
             <MapControlButton
               isActive={is3DMode}
               onClick={toggle3DMode}
-              title={is3DMode ? '3D-Ansicht deaktivieren' : '3D-Ansicht aktivieren'}
+              title={
+                is3DMode ? "3D-Ansicht deaktivieren" : "3D-Ansicht aktivieren"
+              }
               label="Gelände"
               isMobile={true}
               eventName="3d-toggle"
             >
-              <span className={`text-sm font-bold leading-none ${is3DMode ? 'text-primary' : 'text-gray-700 group-hover:text-primary'} transition-colors`}>3D</span>
+              <span
+                className={`text-sm font-bold leading-none ${is3DMode ? "text-primary" : "text-gray-700 group-hover:text-primary"} transition-colors`}
+              >
+                3D
+              </span>
             </MapControlButton>
             <MeasureButton
               isMeasureMode={isMeasureMode}
@@ -1625,7 +1959,6 @@ export default function MapPage() {
           {/* Map Container - Full Width */}
           <div ref={mapContainer} className="w-full h-full" />
 
-
           {/* Desktop Toggle Button - Top Left (only visible when sidebar is closed) */}
           {!sidebarOpen && (
             <div className="absolute top-4 left-4 z-30">
@@ -1646,16 +1979,23 @@ export default function MapPage() {
           {/* Desktop Sidebar - Overlay from Left */}
           <div
             id="map-sidebar-desktop"
-            className={`absolute top-0 left-0 h-full z-20 transition-transform duration-300 ease-in-out ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-              }`}
+            className={`absolute top-0 left-0 h-full z-20 transition-transform duration-300 ease-in-out ${
+              sidebarOpen ? "translate-x-0" : "-translate-x-full"
+            }`}
             style={{ width: `${sidebarWidth}px` }}
           >
-            <div className={`bg-white h-full flex transition-shadow duration-300 ${sidebarOpen ? 'shadow-2xl' : 'shadow-none'
-              }`}>
+            <div
+              className={`bg-white h-full flex transition-shadow duration-300 ${
+                sidebarOpen ? "shadow-2xl" : "shadow-none"
+              }`}
+            >
               {/* Sidebar Content */}
               <div className="flex-1 overflow-hidden flex flex-col">
                 {selectedRoute ? (
-                  <RouteDetailPanel route={selectedRoute} onClose={closeSelectedRoute} />
+                  <RouteDetailPanel
+                    route={selectedRoute}
+                    onClose={closeSelectedRoute}
+                  />
                 ) : (
                   <>
                     {/* Close Button - Top Right within Sidebar */}
@@ -1704,7 +2044,7 @@ export default function MapPage() {
           {/* Desktop Button Group: Satellite + 3D + Measure */}
           <div
             className="absolute bottom-6 z-10 flex gap-2 items-end transition-all duration-300"
-            style={{ left: sidebarOpen ? `${sidebarWidth + 24}px` : '24px' }}
+            style={{ left: sidebarOpen ? `${sidebarWidth + 24}px` : "24px" }}
           >
             <SatelliteToggleButton
               isSatelliteView={isSatelliteView}
@@ -1728,12 +2068,18 @@ export default function MapPage() {
             <MapControlButton
               isActive={is3DMode}
               onClick={toggle3DMode}
-              title={is3DMode ? '3D-Ansicht deaktivieren' : '3D-Ansicht aktivieren'}
+              title={
+                is3DMode ? "3D-Ansicht deaktivieren" : "3D-Ansicht aktivieren"
+              }
               label="Gelände"
               isMobile={false}
               eventName="3d-toggle"
             >
-              <span className={`text-base font-bold leading-none ${is3DMode ? 'text-primary' : 'text-gray-700 group-hover:text-primary'} transition-colors`}>3D</span>
+              <span
+                className={`text-base font-bold leading-none ${is3DMode ? "text-primary" : "text-gray-700 group-hover:text-primary"} transition-colors`}
+              >
+                3D
+              </span>
             </MapControlButton>
             <MeasureButton
               isMeasureMode={isMeasureMode}
@@ -1764,7 +2110,7 @@ export default function MapPage() {
       {/* Toast notifications */}
       {toasts.length > 0 && (
         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-50 flex flex-col gap-2 pointer-events-none">
-          {toasts.map(t => (
+          {toasts.map((t) => (
             <div
               key={t.id}
               className="flex items-start gap-2 bg-gray-900 text-white text-sm rounded-lg px-4 py-3 shadow-xl max-w-sm pointer-events-auto animate-in fade-in slide-in-from-bottom-2"
@@ -1773,7 +2119,9 @@ export default function MapPage() {
               <span>{t.message}</span>
               <button
                 type="button"
-                onClick={() => setToasts(prev => prev.filter(x => x.id !== t.id))}
+                onClick={() =>
+                  setToasts((prev) => prev.filter((x) => x.id !== t.id))
+                }
                 className="ml-1 shrink-0 text-gray-400 hover:text-white transition-colors"
                 aria-label="Hinweis schließen"
               >
