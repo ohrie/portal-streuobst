@@ -16,6 +16,7 @@ import BentoCard from "@/components/BentoCard";
 import Button from "@/components/Button";
 import StandardLayout from "@/components/layouts/StandardLayout";
 import StatsDisplay from "@/components/StatsDisplay";
+import { BUNDESLAENDER } from "@/data/bundeslaender";
 
 export default function Home() {
   return (
@@ -263,6 +264,31 @@ export default function Home() {
           </div>
         </section>
 
+        {/* Mitgestaltung Block */}
+        <section className="py-20 px-4 bg-secondary/10">
+          <div className="max-w-4xl mx-auto">
+            <h2 className="text-3xl font-bold text-foreground mb-6 font-heading text-center">
+              Mitgestaltung
+            </h2>
+            <p className="text-foreground/80 leading-relaxed text-lg">
+              Ob im Code, bei Daten oder mit eigenen Streuobstwiesen vor Ort:
+              Das Streuobst Portal ist offen für Menschen und Organisationen,
+              die sich einbringen möchten. Besonders OGVs und weitere
+              Initiativen können gemeinsam mit uns daran arbeiten,
+              Streuobstwiesen in ganz Deutschland sichtbarer zu machen — etwa,
+              indem eigene Flächen, Projekte und regionale Informationen auf der
+              Plattform und der Karte erscheinen. Wenn du oder ihr Interesse an
+              einer Zusammenarbeit habt, meldet euch gerne und wir bringen die
+              Streuobstwiesen in das digitale Zeitalter.
+            </p>
+            <div className="mt-8 text-center">
+              <Button href="mailto:hallo@portal-streuobst.de" icon={Mail}>
+                Kontakt aufnehmen
+              </Button>
+            </div>
+          </div>
+        </section>
+
         {/* Bento Grid Section */}
         <section className="py-20 px-4">
           <div className="max-w-7xl mx-auto flex flex-col items-center">
@@ -322,28 +348,34 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Mitgestaltung Block */}
+        {/* Bundesländer Section */}
         <section className="py-20 px-4 bg-secondary/10">
-          <div className="max-w-4xl mx-auto">
-            <h2 className="text-3xl font-bold text-foreground mb-6 font-heading text-center">
-              Mitgestaltung
-            </h2>
-            <p className="text-foreground/80 leading-relaxed text-lg">
-              Ob im Code, bei Daten oder mit eigenen Streuobstwiesen vor Ort:
-              Das Streuobst Portal ist offen für Menschen und Organisationen,
-              die sich einbringen möchten. Besonders OGVs und weitere
-              Initiativen können gemeinsam mit uns daran arbeiten,
-              Streuobstwiesen in ganz Deutschland sichtbarer zu machen — etwa,
-              indem eigene Flächen, Projekte und regionale Informationen auf der
-              Plattform und der Karte erscheinen. Wenn du oder ihr Interesse an
-              einer Zusammenarbeit habt, meldet euch gerne und wir bringen die
-              Streuobstwiesen in das digitale Zeitalter.
-            </p>
-            <div className="mt-8 text-center">
-              <Button href="mailto:hallo@portal-streuobst.de" icon={Mail}>
-                Kontakt aufnehmen
-              </Button>
+          <div className="max-w-6xl mx-auto">
+            <div className="text-center mb-10">
+              <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4 font-heading">
+                Streuobstwiesenkarte für jedes Bundesland
+              </h2>
+              <p className="text-lg text-foreground/70 max-w-2xl mx-auto">
+                Unsere interaktive Karte deckt ganz Deutschland ab. Wähle dein
+                Bundesland, um direkt in die dortigen Streuobstwiesen
+                hineinzuzoomen.
+              </p>
             </div>
+
+            <ul className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+              {BUNDESLAENDER.map((land) => (
+                <li key={land.name}>
+                  <Link
+                    href={`/karte/#${land.zoom}/${land.lat}/${land.lng}`}
+                    prefetch={false}
+                    className="flex items-center gap-2 bg-background rounded-lg px-4 py-3 text-sm font-medium text-foreground border border-gray-200 hover:border-primary hover:text-primary transition-colors"
+                  >
+                    <Map className="w-4 h-4 text-tertiary flex-none" />
+                    Streuobstwiesenkarte {land.name}
+                  </Link>
+                </li>
+              ))}
+            </ul>
           </div>
         </section>
 
