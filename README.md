@@ -41,6 +41,7 @@ Im deutschsprachigen Raum und darüber hinaus gibt es weitere Initiativen zur Ka
 - **[Naschbaumkarte OGV Gerbrunn](https://r4f.github.io/StreuobstGerbrunn/)** — Obstbaumkarte des Obst- und Gartenbauvereins Gerbrunn, die OSM-Daten via Overpass API abruft und Obstsorten farblich kennzeichnet ([Quellcode](https://github.com/r4f/StreuobstGerbrunn)).
 - **[Streuobstwiesen-Kataster Niedersachsen](https://streuobstwiesen-buendnis-niedersachsen.de/web/start/suche)** — Erfassungsportal des Streuobstwiesen-Bündnis Niedersachsen e.V. zur Suche und Eintragung von Streuobstwiesen und Veranstaltungen in Niedersachsen.
 - **[Streuobst-Kataster (Äpfel & Konsorten e.V.)](https://admin.streuobst-kataster.de/maps?loc=brandenburg)** — Interaktives Kataster von Streuobstwiesen u.a. in Brandenburg, betrieben vom Verein Äpfel & Konsorten e.V.
+- **[Streuobstkataster FrankfurtRheinMain](https://www.klimaenergie-frm.de/redirect.phtml?extlink=1&La=1&url_fid=3313.389.1)** — Kataster zur Erfassung von Streuobstwiesen in der Metropolregion FrankfurtRheinMain, betrieben vom Regionalverband FrankfurtRheinMain.
 
 ## Entwicklung
 
