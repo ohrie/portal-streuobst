@@ -34,6 +34,7 @@ import {
   loadMeasureSession,
   saveMeasureSession,
 } from "@/lib/measureSession";
+import { getDisplayName } from "@/lib/osmName";
 import { cacheTrees, getCachedTrees } from "@/lib/treeDetectionCache";
 import type { RouteFeature } from "@/types/routes";
 import partnerOrchards from "../../data/partner-orchards.json";
@@ -955,7 +956,7 @@ export default function MapPage() {
                   feature.geometry as GeoJSON.Geometry,
                 )
               : undefined;
-            const name = propsObj?.name as string | undefined;
+            const name = getDisplayName(propsObj);
             setSelectedFeatures((prev) => [
               ...prev,
               {
@@ -1078,7 +1079,7 @@ export default function MapPage() {
                     feature.geometry as GeoJSON.Geometry,
                   )
                 : undefined;
-              const name = propsObj?.name as string | undefined;
+              const name = getDisplayName(propsObj);
               setSelectedFeatures((prev) => [
                 ...prev,
                 {
