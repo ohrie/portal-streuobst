@@ -306,13 +306,11 @@ export default function StatistikenPage() {
               <TrendingUp className="w-5 h-5 text-secondary" />
             </div>
             <p className="text-3xl font-black text-secondary font-heading">
-              {top3[0]?.kuerzel}
+              {formatHa(top3[0]?.wiesen_area_ha ?? 0)}{" "}
+              <span className="text-xl">ha</span>
             </p>
             <p className="text-sm font-semibold text-foreground mt-1">
               {top3[0]?.name}
-            </p>
-            <p className="text-xs text-gray-400">
-              {formatHa(top3[0]?.wiesen_area_ha ?? 0)} ha
             </p>
           </div>
         </div>
