@@ -9,11 +9,18 @@ Dieses Verzeichnis enthält die Pipeline zur Verarbeitung von OpenStreetMap-Date
 3. Filtert Bäume (`natural=tree`) innerhalb der Orchard-Flächen.
 4. Konvertiert die OSM-Daten mit ogr2ogr zu GeoJSON.
 5. Erzeugt mit tippecanoe Vector Tiles mit den Layern `wiesen`, `streuobstwiesen` und `baeume`.
+6. Schreibt die Statistiken und ruft am Ende `process_laender_stats.py` für die Bundesland-Auswertung auf.
 
 ## Ausgabe
 
 - `output/all_streuobstwiesen.geojson`
 - `output/streuobstwiesen.mbtiles`
+- `output/stats.json`, `output/stats_laender.json`, `output/stats.csv`
+
+Ist die Umgebungsvariable `PORTAL_DATA_DIR` gesetzt, landen `stats.json` und
+`stats_laender.json` zusätzlich direkt dort. Auf dem Server zeigt sie auf das
+Datenverzeichnis der Web-App (`/srv/portal-streuobst/data`), sodass der Cron-Lauf
+ohne separaten Kopierschritt auskommt. Das Deployment setzt sie in der `.env`.
 
 ## Setup und Start
 
@@ -40,6 +47,19 @@ python process_streuobstwiesen.py
 ```
 
 Für einen automatischen Lauf kann `setup_cron.sh` verwendet werden.
+
+### Compose
+
+`docker-compose.yml` beschreibt den Server-Lauf und nutzt das Image aus der Registry —
+so startet ihn auch der Cron auf dem Server (`docker compose up -d`).
+
+Für einen lokalen Build muss `docker-compose.local.yml` explizit dazugeladen werden.
+Sie heißt bewusst nicht `docker-compose.override.yml`, weil Compose diese sonst
+automatisch mitlädt und der Server dadurch ein veraltetes lokales Image benutzt hätte:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.local.yml up --build
+```
 
 ## DZT Knowledge Graph – Routen herunterladen
 

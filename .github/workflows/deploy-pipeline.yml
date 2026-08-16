@@ -15,6 +15,9 @@ on:
       deploy_path:
         required: true
         type: string
+      web_deploy_path:
+        required: true
+        type: string
     secrets:
       SSH_HOST:
         required: true
@@ -49,6 +52,7 @@ jobs:
         uses: appleboy/ssh-action@v1
         env:
           DEPLOY_PATH: ${{ inputs.deploy_path }}
+          WEB_DEPLOY_PATH: ${{ inputs.web_deploy_path }}
           REGISTRY: ${{ inputs.registry }}
           IMAGE_NAME: ${{ inputs.image_name }}
           DOCKER_REGISTRY_USERNAME: ${{ secrets.DOCKER_REGISTRY_USERNAME }}
@@ -57,10 +61,21 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ inputs.ssh_user }}
           password: ${{ secrets.SSH_PASS }}
-          envs: DEPLOY_PATH,REGISTRY,IMAGE_NAME,DOCKER_REGISTRY_USERNAME,DOCKER_REGISTRY_PASSWORD
+          envs: DEPLOY_PATH,WEB_DEPLOY_PATH,REGISTRY,IMAGE_NAME,DOCKER_REGISTRY_USERNAME,DOCKER_REGISTRY_PASSWORD
           script: |
             cd "$DEPLOY_PATH"
             chmod +x *.sh 2>/dev/null || true
+
+            # Altlast aus frueheren Deployments: die Override zwang den Cron auf ein
+            # veraltetes lokal gebautes Image statt auf das Registry-Image.
+            rm -f docker-compose.override.yml
+
+            # Statistiken sollen direkt im Datenverzeichnis der Web-App landen.
+            # Neu schreiben statt anhaengen, da .env root gehoeren kann.
+            grep -v '^PORTAL_DATA_DIR=' .env 2>/dev/null > .env.new || true
+            echo "PORTAL_DATA_DIR=$WEB_DEPLOY_PATH/data" >> .env.new
+            mv -f .env.new .env
+
             echo "$DOCKER_REGISTRY_PASSWORD" | docker login "$REGISTRY" -u "$DOCKER_REGISTRY_USERNAME" --password-stdin
             docker pull "$REGISTRY/$IMAGE_NAME:latest" || true
             docker compose up -d --remove-orphans

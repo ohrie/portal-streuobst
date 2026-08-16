@@ -47,12 +47,19 @@ echo -e "${YELLOW}▶️  Running data processing...${NC}" | tee -a "$LOG_FILE"
 
 docker rm -f streuobstwiesen-processing 2>/dev/null || true
 
+# Datenverzeichnis der Web-App — die Pipeline schreibt stats.json und
+# stats_laender.json direkt dorthin, ein Kopierschritt entfaellt.
+PORTAL_DATA_DIR="${PORTAL_DATA_DIR:-/srv/portal-streuobst/data}"
+mkdir -p "$PORTAL_DATA_DIR"
+
 docker run --rm \
     --name streuobstwiesen-processing \
     -v "${SCRIPT_DIR}/data:/app/data" \
     -v "${SCRIPT_DIR}/temp:/app/temp" \
     -v "${SCRIPT_DIR}/output:/app/output" \
     -v "${SCRIPT_DIR}/logs:/app/logs" \
+    -v "${PORTAL_DATA_DIR}:/app/portal-data" \
+    -e PORTAL_DATA_DIR=/app/portal-data \
     --memory=16g \
     --cpus=4 \
     "$IMAGE_NAME" 2>&1 | tee -a "$LOG_FILE"
@@ -60,29 +67,7 @@ docker run --rm \
 # Check exit status
 if [ ${PIPESTATUS[0]} -eq 0 ]; then
     echo -e "${GREEN}✅ Processing completed successfully!${NC}" | tee -a "$LOG_FILE"
-
-    # Run Bundesland statistics
-    echo -e "${YELLOW}▶️  Running Bundesland statistics...${NC}" | tee -a "$LOG_FILE"
-    docker run --rm \
-        --name streuobstwiesen-laender-stats \
-        -v "${SCRIPT_DIR}/output:/app/output" \
-        "$IMAGE_NAME" \
-        python3 process_laender_stats.py 2>&1 | tee -a "$LOG_FILE"
-
-    if [ ${PIPESTATUS[0]} -eq 0 ]; then
-        echo -e "${GREEN}✅ Bundesland statistics completed${NC}" | tee -a "$LOG_FILE"
-        PORTAL_DATA_DIR="/srv/portal-streuobst/data"
-        mkdir -p "$PORTAL_DATA_DIR"
-        # Docker creates a directory at the bind-mount path if the file didn't exist at compose-up time
-        [ -d "$PORTAL_DATA_DIR/stats_laender.json" ] && rm -rf "$PORTAL_DATA_DIR/stats_laender.json"
-        cp "${SCRIPT_DIR}/output/stats_laender.json" "$PORTAL_DATA_DIR/stats_laender.json"
-        echo -e "${GREEN}✅ stats_laender.json deployed to $PORTAL_DATA_DIR${NC}" | tee -a "$LOG_FILE"
-        [ -d "$PORTAL_DATA_DIR/stats.json" ] && rm -rf "$PORTAL_DATA_DIR/stats.json"
-        cp "${SCRIPT_DIR}/output/stats.json" "$PORTAL_DATA_DIR/stats.json"
-        echo -e "${GREEN}✅ stats.json deployed to $PORTAL_DATA_DIR${NC}" | tee -a "$LOG_FILE"
-    else
-        echo -e "${RED}❌ Bundesland statistics failed!${NC}" | tee -a "$LOG_FILE"
-    fi
+    echo -e "${GREEN}✅ Statistiken nach $PORTAL_DATA_DIR geschrieben${NC}" | tee -a "$LOG_FILE"
 
     # Copy tiles if needed
     if [ -f "${SCRIPT_DIR}/output/streuobstwiesen.mbtiles" ]; then

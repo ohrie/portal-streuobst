@@ -12,7 +12,13 @@ services:
       - ./output:/app/output
       # Mount logs
       - ./logs:/app/logs
+      # Datenverzeichnis der Web-App: stats.json/stats_laender.json landen direkt dort,
+      # damit der Cron-Lauf ohne zusaetzlichen Kopierschritt auskommt.
+      # Auf dem Server setzt das Deployment PORTAL_DATA_DIR in der .env auf
+      # /srv/portal-streuobst/data; lokal faellt es harmlos auf ./output zurueck.
+      - ${PORTAL_DATA_DIR:-./output}:/app/portal-data
     environment:
+      - PORTAL_DATA_DIR=/app/portal-data
       # Load from .env file (if needed)
       - SMTP_FROM=${SMTP_FROM}
       - SMTP_TO=${SMTP_TO}

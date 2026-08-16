@@ -105,6 +105,7 @@ jobs:
       image_name: streuobstwiesen-pipeline
       ssh_user: ${{ vars.SSH_USER }}
       deploy_path: ${{ vars.DEPLOY_PATH }}
+      web_deploy_path: ${{ vars.WEB_DEPLOY_PATH }}
     secrets:
       SSH_HOST: ${{ secrets.SSH_HOST }}
       SSH_PASS: ${{ secrets.SSH_PASS }}

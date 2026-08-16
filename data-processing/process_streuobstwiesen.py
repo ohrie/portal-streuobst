@@ -49,7 +49,11 @@ class Config:
     DATA_DIR = BASE_DIR / "data"
     TEMP_DIR = BASE_DIR / "temp"
     OUTPUT_DIR = BASE_DIR / "output"
-    
+
+    # Verzeichnis, aus dem die Web-App stats.json/stats_laender.json ausliefert.
+    # Auf dem Server per Volume gemountet, lokal nicht gesetzt.
+    PORTAL_DATA_DIR = Path(os.environ["PORTAL_DATA_DIR"]) if os.environ.get("PORTAL_DATA_DIR") else None
+
     # File names
     GERMANY_PBF = "germany-latest.osm.pbf"
     ORCHARDS_OSM = "orchards.osm.pbf"
@@ -1076,7 +1080,22 @@ def main(dry_run: bool = False):
                     export_stats_json(stats, web_stats_json)
                     logger.info(f"   ✅ stats.json exported to {web_stats_json}")
 
-        
+                # Auf dem Server: direkt in das Verzeichnis der Web-App schreiben
+                if config.PORTAL_DATA_DIR:
+                    export_stats_json(stats, config.PORTAL_DATA_DIR / "stats.json")
+                    logger.info(f"   ✅ stats.json deployed to {config.PORTAL_DATA_DIR}")
+
+            # Bundesland-Statistiken direkt im Anschluss erzeugen — sie hängen
+            # an all_streuobstwiesen.geojson und liefen bisher nur manuell.
+            logger.info("🗾 Generating Bundesland statistics...")
+            try:
+                import process_laender_stats
+                process_laender_stats.main()
+                logger.info("   ✅ stats_laender.json generated")
+            except (Exception, SystemExit) as e:
+                # Darf den restlichen Pipeline-Lauf nicht als fehlgeschlagen markieren
+                logger.error(f"   ❌ Bundesland statistics failed: {e}")
+
     except Exception as e:
         logger.error(f"❌ Pipeline failed: {e}")
         sys.exit(1)

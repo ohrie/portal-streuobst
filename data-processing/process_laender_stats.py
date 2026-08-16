@@ -12,6 +12,7 @@ Schreibt:
 
 import json
 import logging
+import os
 import shutil
 from datetime import datetime
 from pathlib import Path
@@ -25,6 +26,10 @@ logger = logging.getLogger(__name__)
 BASE_DIR = Path(__file__).parent
 OUTPUT_DIR = BASE_DIR / "output"
 WEB_PUBLIC_DIR = BASE_DIR / ".." / "web" / "public"
+
+# Verzeichnis, aus dem die Web-App die Statistiken ausliefert.
+# Auf dem Server per Volume gemountet, lokal nicht gesetzt.
+PORTAL_DATA_DIR = Path(os.environ["PORTAL_DATA_DIR"]) if os.environ.get("PORTAL_DATA_DIR") else None
 
 BUNDESLAENDER_FILE = BASE_DIR / "geodata" / "bundeslaender.geojson"
 WIESEN_FILE = OUTPUT_DIR / "all_streuobstwiesen.geojson"
@@ -177,6 +182,11 @@ def main() -> None:
         logger.info(f"Kopiert nach: {web_target}")
     else:
         logger.warning(f"Web-public-Verzeichnis nicht gefunden (auf dem Server egal, nur fuer lokale Entwicklung relevant): {WEB_PUBLIC_DIR}")
+
+    if PORTAL_DATA_DIR:
+        PORTAL_DATA_DIR.mkdir(parents=True, exist_ok=True)
+        shutil.copy(OUTPUT_FILE, PORTAL_DATA_DIR / "stats_laender.json")
+        logger.info(f"Kopiert nach: {PORTAL_DATA_DIR / 'stats_laender.json'}")
 
     logger.info("Fertig!")
     for l in output["laender"]:
