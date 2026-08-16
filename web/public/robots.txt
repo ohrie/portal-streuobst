@@ -2,6 +2,6 @@
 User-agent: *
 Allow: /
 
-# Disallow privacy and imprint pages
-Disallow: /datenschutz/
-Disallow: /impressum/
+# /impressum/ und /datenschutz/ werden bewusst NICHT per Disallow gesperrt:
+# sie tragen ein <meta name="robots" content="noindex"> und müssen dafür
+# crawlbar bleiben. Ein Disallow würde das Auslesen des Tags verhindern.
