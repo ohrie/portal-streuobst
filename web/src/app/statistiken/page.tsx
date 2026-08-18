@@ -37,6 +37,7 @@ interface GlobalStats {
   trees_count: number;
   fruit_trees_count?: number;
   genus_distribution?: GenusCount[];
+  orchards_area_ha?: number;
   orchard_meadow_count?: number;
   orchard_meadow_area_ha?: number;
   orchard_plantation_count?: number;
@@ -46,6 +47,7 @@ interface GlobalStats {
 }
 
 interface ArtenStats {
+  orchards_area_ha: number;
   orchard_meadow_count: number;
   orchard_meadow_area_ha: number;
   orchard_plantation_count: number;
@@ -144,11 +146,13 @@ export default function StatistikenPage() {
         setFruitTreesCount(global.fruit_trees_count ?? null);
         setGenusDist(global.genus_distribution ?? []);
         if (
+          global.orchards_area_ha !== undefined &&
           global.orchard_meadow_count !== undefined &&
           global.orchard_plantation_count !== undefined &&
           global.streuobstwiesen_count !== undefined
         ) {
           setArtenStats({
+            orchards_area_ha: global.orchards_area_ha,
             orchard_meadow_count: global.orchard_meadow_count,
             orchard_meadow_area_ha: global.orchard_meadow_area_ha ?? 0,
             orchard_plantation_count: global.orchard_plantation_count,
@@ -263,6 +267,20 @@ export default function StatistikenPage() {
       )
     : [];
   const artenTotalCount = artenChartData.reduce((s, a) => s + a.count, 0);
+  const orchardUnspecifiedAreaHa = artenStats
+    ? Math.max(
+        0,
+        Math.round(
+          artenStats.orchards_area_ha -
+            artenStats.orchard_meadow_area_ha -
+            artenStats.orchard_plantation_area_ha,
+        ),
+      )
+    : 0;
+  const orchardUnspecifiedShare =
+    artenStats && artenStats.orchards_area_ha > 0
+      ? (orchardUnspecifiedAreaHa / artenStats.orchards_area_ha) * 100
+      : 0;
 
   // Y-axis tick: scientific genus + muted German name below it.
   const renderGenusTick = (props: {
@@ -598,7 +616,7 @@ export default function StatistikenPage() {
           <div className="max-w-5xl mx-auto bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8">
             <div className="flex items-center justify-between flex-wrap gap-4 mb-2">
               <h2 className="text-xl font-bold text-foreground font-heading">
-                Arten von Streuobstwiesen
+                Arten von Obstgärten
               </h2>
               <div className="flex rounded-xl overflow-hidden border border-gray-200 text-sm font-semibold">
                 <button
@@ -624,9 +642,9 @@ export default function StatistikenPage() {
               </div>
             </div>
             <p className="text-sm text-gray-500 mb-6 max-w-2xl">
-              OpenStreetMap unterscheidet drei Arten von Streuobstwiesen: die
-              klassische Streuobstwiese als Obstgarten, die Wiese mit
-              Obstbäumen und die intensiver bewirtschaftete Obstplantage.
+              OpenStreetMap unterscheidet drei Arten von Obstgärten: die
+              klassische Streuobstwiese, die Wiese mit
+              Obstbäumen und die intensiv bewirtschaftete Obstplantage.
             </p>
 
             <ResponsiveContainer width="100%" height={artenChartData.length * 64 + 20}>
@@ -699,6 +717,21 @@ export default function StatistikenPage() {
                 );
               })}
             </div>
+
+            {orchardUnspecifiedAreaHa > 0 && (
+              <p className="text-sm text-gray-500 mt-4">
+                Hinzu kommen{" "}
+                <span className="font-semibold text-foreground">
+                  {formatHa(orchardUnspecifiedAreaHa)} ha
+                </span>{" "}
+                ({orchardUnspecifiedShare.toFixed(1)} %) auf{" "}
+                <code className="font-mono text-xs">landuse=orchard</code>{" "}
+                Fläche ohne nähere Spezifizierung – diese Obstgärten sind
+                weder als Streuobstwiese noch als Plantage getaggt und
+                müssten in OpenStreetMap noch entsprechend nachgetaggt
+                werden.
+              </p>
+            )}
           </div>
         </section>
       )}
