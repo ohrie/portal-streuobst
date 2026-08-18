@@ -504,6 +504,8 @@ def generate_statistics(orchards_file: Path, streuobstwiesen_file: Path, trees_f
         'orchards_area_ha': 0,
         'orchard_meadow_count': 0,
         'orchard_meadow_area_ha': 0,
+        'orchard_plantation_count': 0,
+        'orchard_plantation_area_ha': 0,
         'streuobstwiesen_count': 0,
         'streuobstwiesen_area_ha': 0,
         'trees_count': 0,
@@ -536,15 +538,25 @@ def generate_statistics(orchards_file: Path, streuobstwiesen_file: Path, trees_f
 
                 # Count orchard=meadow_orchard subset within landuse=orchard
                 meadow_area_sqm = 0
+                plantation_area_sqm = 0
                 for feature in orchards_data.get('features', []):
-                    if feature.get('properties', {}).get('orchard') == 'meadow_orchard':
+                    orchard_tag = feature.get('properties', {}).get('orchard')
+                    if orchard_tag == 'meadow_orchard':
                         stats['orchard_meadow_count'] += 1
                         try:
                             geom = shape(feature['geometry'])
                             meadow_area_sqm += geom.area * 111320 * 111320
                         except:
                             pass
+                    elif orchard_tag == 'plantation':
+                        stats['orchard_plantation_count'] += 1
+                        try:
+                            geom = shape(feature['geometry'])
+                            plantation_area_sqm += geom.area * 111320 * 111320
+                        except:
+                            pass
                 stats['orchard_meadow_area_ha'] = round(meadow_area_sqm / 10000, 2)
+                stats['orchard_plantation_area_ha'] = round(plantation_area_sqm / 10000, 2)
 
         # Count streuobstwiesen and calculate area
         if streuobstwiesen_file.exists():
@@ -594,6 +606,7 @@ def generate_statistics(orchards_file: Path, streuobstwiesen_file: Path, trees_f
         logger.info(f"📊 Statistics generated:")
         logger.info(f"   - Obstgärten: {stats['orchards_count']} ({stats['orchards_area_ha']} ha)")
         logger.info(f"   - davon orchard=meadow_orchard: {stats['orchard_meadow_count']} ({stats['orchard_meadow_area_ha']} ha)")
+        logger.info(f"   - davon orchard=plantation: {stats['orchard_plantation_count']} ({stats['orchard_plantation_area_ha']} ha)")
         logger.info(f"   - Streuobstwiesen: {stats['streuobstwiesen_count']} ({stats['streuobstwiesen_area_ha']} ha)")
         logger.info(f"   - Bäume (gesamt): {stats['trees_count']}")
         logger.info(f"   - davon Obstbäume bundesweit: {stats['fruit_trees_count']}")
@@ -622,6 +635,10 @@ def save_statistics(stats: dict, output_file: Path) -> bool:
             f.write("STREUOBSTWIESEN (landuse=orchard + orchard=meadow_orchard)\n")
             f.write(f"  Anzahl: {stats['orchard_meadow_count']:,}\n")
             f.write(f"  Fläche: {stats['orchard_meadow_area_ha']:,.2f} Hektar\n\n")
+
+            f.write("OBSTPLANTAGEN (landuse=orchard + orchard=plantation)\n")
+            f.write(f"  Anzahl: {stats['orchard_plantation_count']:,}\n")
+            f.write(f"  Fläche: {stats['orchard_plantation_area_ha']:,.2f} Hektar\n\n")
 
             f.write("WIESEN mit OBSTBÄUMEN (landuse=meadow + meadow=meadow_orchard)\n")
             f.write(f"  Anzahl: {stats['streuobstwiesen_count']:,}\n")
@@ -659,6 +676,8 @@ def export_stats_json(stats: dict, json_file: Path) -> bool:
             'orchards_area_ha': stats.get('orchards_area_ha', 0),
             'orchard_meadow_count': stats.get('orchard_meadow_count', 0),
             'orchard_meadow_area_ha': stats.get('orchard_meadow_area_ha', 0),
+            'orchard_plantation_count': stats.get('orchard_plantation_count', 0),
+            'orchard_plantation_area_ha': stats.get('orchard_plantation_area_ha', 0),
             'streuobstwiesen_count': stats.get('streuobstwiesen_count', 0),
             'streuobstwiesen_area_ha': stats.get('streuobstwiesen_area_ha', 0),
             'trees_count': stats.get('trees_count', 0),
@@ -686,6 +705,8 @@ def append_stats_csv(stats: dict, csv_file: Path) -> bool:
             'orchards_area_ha',
             'orchard_meadow_count',
             'orchard_meadow_area_ha',
+            'orchard_plantation_count',
+            'orchard_plantation_area_ha',
             'streuobstwiesen_count',
             'streuobstwiesen_area_ha',
             'trees_count',
@@ -707,6 +728,8 @@ def append_stats_csv(stats: dict, csv_file: Path) -> bool:
                 'orchards_area_ha': stats.get('orchards_area_ha', 0),
                 'orchard_meadow_count': stats.get('orchard_meadow_count', 0),
                 'orchard_meadow_area_ha': stats.get('orchard_meadow_area_ha', 0),
+                'orchard_plantation_count': stats.get('orchard_plantation_count', 0),
+                'orchard_plantation_area_ha': stats.get('orchard_plantation_area_ha', 0),
                 'streuobstwiesen_count': stats.get('streuobstwiesen_count', 0),
                 'streuobstwiesen_area_ha': stats.get('streuobstwiesen_area_ha', 0),
                 'trees_count': stats.get('trees_count', 0),

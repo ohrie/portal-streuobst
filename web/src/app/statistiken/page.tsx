@@ -37,6 +37,21 @@ interface GlobalStats {
   trees_count: number;
   fruit_trees_count?: number;
   genus_distribution?: GenusCount[];
+  orchard_meadow_count?: number;
+  orchard_meadow_area_ha?: number;
+  orchard_plantation_count?: number;
+  orchard_plantation_area_ha?: number;
+  streuobstwiesen_count?: number;
+  streuobstwiesen_area_ha?: number;
+}
+
+interface ArtenStats {
+  orchard_meadow_count: number;
+  orchard_meadow_area_ha: number;
+  orchard_plantation_count: number;
+  orchard_plantation_area_ha: number;
+  streuobstwiesen_count: number;
+  streuobstwiesen_area_ha: number;
 }
 
 const PRIMARY = "#754c82";
@@ -99,8 +114,12 @@ export default function StatistikenPage() {
   const [stats, setStats] = useState<LaenderStats | null>(null);
   const [fruitTreesCount, setFruitTreesCount] = useState<number | null>(null);
   const [genusDist, setGenusDist] = useState<GenusCount[]>([]);
+  const [artenStats, setArtenStats] = useState<ArtenStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeChart, setActiveChart] = useState<"count" | "area">("area");
+  const [activeArtenChart, setActiveArtenChart] = useState<"count" | "area">(
+    "area",
+  );
   const isMobile = useIsMobile();
 
   useEffect(() => {
@@ -124,6 +143,20 @@ export default function StatistikenPage() {
         if (!global) return;
         setFruitTreesCount(global.fruit_trees_count ?? null);
         setGenusDist(global.genus_distribution ?? []);
+        if (
+          global.orchard_meadow_count !== undefined &&
+          global.orchard_plantation_count !== undefined &&
+          global.streuobstwiesen_count !== undefined
+        ) {
+          setArtenStats({
+            orchard_meadow_count: global.orchard_meadow_count,
+            orchard_meadow_area_ha: global.orchard_meadow_area_ha ?? 0,
+            orchard_plantation_count: global.orchard_plantation_count,
+            orchard_plantation_area_ha: global.orchard_plantation_area_ha ?? 0,
+            streuobstwiesen_count: global.streuobstwiesen_count,
+            streuobstwiesen_area_ha: global.streuobstwiesen_area_ha ?? 0,
+          });
+        }
       })
       .catch(() => {
         /* no tree data available – section stays hidden */
@@ -203,6 +236,33 @@ export default function StatistikenPage() {
   // fields – in that case hide the entire "Bäume" section instead of showing
   // empty placeholder cards.
   const hasTreeData = fruitTreesCount !== null || genusDist.length > 0;
+
+  const artenChartData = artenStats
+    ? [
+        {
+          name: "Streuobstwiese",
+          fullName: "Streuobstwiese (landuse=orchard + orchard=meadow_orchard)",
+          count: artenStats.orchard_meadow_count,
+          area_ha: Math.round(artenStats.orchard_meadow_area_ha),
+        },
+        {
+          name: "Wiese mit Obstbäumen",
+          fullName:
+            "Wiese mit Obstbäumen (landuse=meadow + meadow=meadow_orchard)",
+          count: artenStats.streuobstwiesen_count,
+          area_ha: Math.round(artenStats.streuobstwiesen_area_ha),
+        },
+        {
+          name: "Obstplantage",
+          fullName: "Obstplantage (landuse=orchard + orchard=plantation)",
+          count: artenStats.orchard_plantation_count,
+          area_ha: Math.round(artenStats.orchard_plantation_area_ha),
+        },
+      ].sort((a, b) =>
+        activeArtenChart === "count" ? b.count - a.count : b.area_ha - a.area_ha,
+      )
+    : [];
+  const artenTotalCount = artenChartData.reduce((s, a) => s + a.count, 0);
 
   // Y-axis tick: scientific genus + muted German name below it.
   const renderGenusTick = (props: {
@@ -439,7 +499,7 @@ export default function StatistikenPage() {
                     Bäume
                   </th>
                   <th className="text-right px-6 py-3 font-semibold hidden sm:table-cell">
-                    Bundesanteil
+                    Bundesflächenanteil
                   </th>
                 </tr>
               </thead>
@@ -531,6 +591,117 @@ export default function StatistikenPage() {
           </div>
         </div>
       </section>
+
+      {/* Arten-Verteilung */}
+      {artenChartData.length > 0 && (
+        <section className="px-4 py-8">
+          <div className="max-w-5xl mx-auto bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8">
+            <div className="flex items-center justify-between flex-wrap gap-4 mb-2">
+              <h2 className="text-xl font-bold text-foreground font-heading">
+                Arten von Streuobstwiesen
+              </h2>
+              <div className="flex rounded-xl overflow-hidden border border-gray-200 text-sm font-semibold">
+                <button
+                  onClick={() => setActiveArtenChart("count")}
+                  className={`px-4 py-2 transition-colors ${
+                    activeArtenChart === "count"
+                      ? "bg-primary text-white"
+                      : "bg-white text-gray-600 hover:bg-gray-50"
+                  }`}
+                >
+                  Anzahl
+                </button>
+                <button
+                  onClick={() => setActiveArtenChart("area")}
+                  className={`px-4 py-2 transition-colors ${
+                    activeArtenChart === "area"
+                      ? "bg-primary text-white"
+                      : "bg-white text-gray-600 hover:bg-gray-50"
+                  }`}
+                >
+                  Hektar
+                </button>
+              </div>
+            </div>
+            <p className="text-sm text-gray-500 mb-6 max-w-2xl">
+              OpenStreetMap unterscheidet drei Arten von Streuobstwiesen: die
+              klassische Streuobstwiese als Obstgarten, die Wiese mit
+              Obstbäumen und die intensiver bewirtschaftete Obstplantage.
+            </p>
+
+            <ResponsiveContainer width="100%" height={artenChartData.length * 64 + 20}>
+              <BarChart
+                data={artenChartData}
+                layout="vertical"
+                margin={{ top: 4, right: 56, left: 8, bottom: 4 }}
+              >
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  stroke="#f0f0f0"
+                  horizontal={false}
+                />
+                <XAxis
+                  type="number"
+                  tick={{ fontSize: 11, fill: "#64748b" }}
+                  tickFormatter={(v) => v.toLocaleString("de-DE")}
+                />
+                <YAxis
+                  type="category"
+                  dataKey="name"
+                  tick={{ fontSize: 12, fontWeight: 600, fill: "#475569" }}
+                  width={150}
+                />
+                <Tooltip
+                  content={
+                    <CustomTooltip
+                      unit={activeArtenChart === "count" ? "Wiesen" : "ha"}
+                    />
+                  }
+                  cursor={{ fill: "rgba(0,0,0,0.03)" }}
+                />
+                <Bar
+                  dataKey={activeArtenChart === "count" ? "count" : "area_ha"}
+                  radius={[0, 6, 6, 0]}
+                >
+                  {artenChartData.map((_, index) => (
+                    <Cell key={index} fill={barColor(index)} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+
+            <div className="flex flex-wrap gap-4 mt-6 pt-6 border-t border-gray-100">
+              {artenChartData.map((a, index) => {
+                const share =
+                  activeArtenChart === "count"
+                    ? artenTotalCount > 0
+                      ? (a.count / artenTotalCount) * 100
+                      : 0
+                    : 0;
+                return (
+                  <div
+                    key={a.name}
+                    className="flex items-center gap-2 text-sm text-gray-500"
+                  >
+                    <span
+                      className="w-2.5 h-2.5 rounded-full"
+                      style={{ background: barColor(index) }}
+                    />
+                    <span className="font-medium text-foreground">
+                      {a.name}
+                    </span>
+                    {activeArtenChart === "count" && (
+                      <span className="text-gray-400">
+                        {share.toFixed(1)} %
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* ===================== BÄUME ===================== */}
       {hasTreeData && (
