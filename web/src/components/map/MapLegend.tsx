@@ -115,38 +115,6 @@ export default function MapLegend({
           </div>
         </div>
 
-        {/* Important Notice */}
-        <div className="bg-orange-50 border-2 border-orange-300 rounded-xl p-4 mb-6">
-          <div className="flex items-start gap-3">
-            <svg
-              className="w-5 h-5 text-orange-600 shrink-0 mt-1"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-              />
-            </svg>
-            <div className="text-left">
-              <h2 className="text-base font-bold text-orange-900 mb-2">
-                Wichtiger Hinweis
-              </h2>
-              <p className="text-sm text-orange-900 leading-relaxed">
-                Bitte beachte:{" "}
-                <strong>
-                  Obst von Streuobstwiesen darf nicht ohne Erlaubnis geerntet
-                  werden.
-                </strong>{" "}
-                Ernte nur, wenn du die Erlaubnis hast.
-              </p>
-            </div>
-          </div>
-        </div>
-
         {/* Data Information & Call to Action */}
         <div className="border-t pt-6">
           <h3 className="text-lg font-semibold text-nature mb-3">

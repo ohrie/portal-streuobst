@@ -12,6 +12,7 @@ import HistoricalAerialsButton, {
 } from "@/components/map/HistoricalAerialsButton";
 import MapControlButton from "@/components/map/MapControlButton";
 import MapLegend from "@/components/map/MapLegend";
+import HarvestNotice from "@/components/map/HarvestNotice";
 import MeasureButton from "@/components/map/MeasureButton";
 import MeasurePanel from "@/components/map/MeasurePanel";
 import { createOSMPopupHTML } from "@/components/map/OSMPopup";
@@ -46,6 +47,8 @@ const TILE_SERVER_URL =
   process.env.NEXT_PUBLIC_TILE_SERVER_URL ??
   "https://tiles.portal-streuobst.de";
 
+const HARVEST_NOTICE_STORAGE_KEY = "streuobst_harvest_notice_dismissed";
+
 // Label marker helpers
 type LabelDatum = {
   el: HTMLDivElement;
@@ -70,6 +73,16 @@ export default function MapPage() {
   const [isSatelliteView, setIsSatelliteView] = useState(false);
   const [is3DMode, setIs3DMode] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  // Only applies to the mobile notice shown over the map; in the sheet it is always visible
+  const [harvestNoticeDismissed, setHarvestNoticeDismissed] = useState(false);
+  const dismissHarvestNotice = () => {
+    setHarvestNoticeDismissed(true);
+    try {
+      localStorage.setItem(HARVEST_NOTICE_STORAGE_KEY, "true");
+    } catch (error) {
+      console.error("Failed to save harvest notice state:", error);
+    }
+  };
   const [isMobile, setIsMobile] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
@@ -160,6 +173,17 @@ export default function MapPage() {
   const [isResizing, setIsResizing] = useState(false);
   const resizeStartX = useRef(0);
   const resizeStartWidth = useRef(0);
+
+  // Restore dismissed harvest notice from localStorage on mount
+  useEffect(() => {
+    try {
+      if (localStorage.getItem(HARVEST_NOTICE_STORAGE_KEY) === "true") {
+        setHarvestNoticeDismissed(true);
+      }
+    } catch (error) {
+      console.error("Failed to load harvest notice state:", error);
+    }
+  }, []);
 
   // Fetch processing date from tileserver TileJSON
   useEffect(() => {
@@ -834,7 +858,8 @@ export default function MapPage() {
 
         new mapboxgl.Popup()
           .setLngLat(coordinates)
-          .setHTML(`
+          .setHTML(
+            `
             <div class="p-4">
               <div class="flex items-center gap-3 mb-3">
                 <img src="${properties?.logo}" alt="${properties?.partner} Logo" class="w-8 h-8" />
@@ -846,7 +871,8 @@ export default function MapPage() {
                 Website besuchen →
               </a>
             </div>
-          `)
+          `,
+          )
           .addTo(map.current!);
       };
 
@@ -1537,8 +1563,7 @@ export default function MapPage() {
   // Tree detection helpers
   const updateDetectedTreesLayer = (features: GeoJSON.Feature[]) => {
     const src = map.current?.getSource("detected-trees") as
-      | mapboxgl.GeoJSONSource
-      | undefined;
+      mapboxgl.GeoJSONSource | undefined;
     src?.setData({ type: "FeatureCollection", features });
   };
 
@@ -1882,6 +1907,10 @@ export default function MapPage() {
                       <RecentSearches onSearchClick={handleRecentSearchClick} />
                     </div>
 
+                    <div className="px-6 pt-4">
+                      <HarvestNotice />
+                    </div>
+
                     <MapLegend
                       onClose={() => setSidebarOpen(false)}
                       showCloseButton={true}
@@ -1894,53 +1923,64 @@ export default function MapPage() {
             <Sheet.Backdrop onTap={() => setSidebarOpen(false)} />
           </Sheet>
 
-          {/* Mobile Button Group: Satellite + 3D + Measure */}
-          <div className="absolute bottom-4 left-4 z-10 flex gap-2 items-end">
-            <SatelliteToggleButton
-              isSatelliteView={isSatelliteView}
-              onToggle={toggleSatelliteView}
-              isMobile={true}
-            />
-            <HistoricalAerialsButton
-              layersVisible={aerialLayersVisible}
-              onToggleAll={toggleAllAerialLayers}
-              onToggleLayer={toggleAerialLayer}
-              onToggleGroup={toggleGroupAerialLayers}
-              isMobile={true}
-              isDisabled={!isInBWBounds}
-            />
-            <ProtectedAreasButton
-              layersVisible={protectedLayersVisible}
-              onToggleAll={toggleAllProtectedLayers}
-              onToggleLayer={toggleProtectedLayer}
-              isMobile={true}
-            />
-            <MapControlButton
-              isActive={is3DMode}
-              onClick={toggle3DMode}
-              title={
-                is3DMode ? "3D-Ansicht deaktivieren" : "3D-Ansicht aktivieren"
-              }
-              label="Gelände"
-              isMobile={true}
-              eventName="3d-toggle"
-            >
-              <span
-                className={`text-sm font-bold leading-none ${is3DMode ? "text-primary" : "text-gray-700 group-hover:text-primary"} transition-colors`}
-              >
-                3D
-              </span>
-            </MapControlButton>
-            <MeasureButton
-              isMeasureMode={isMeasureMode}
-              onToggle={toggleMeasureMode}
-              isMobile={true}
-            />
-            {isLayerLoading && (
-              <div className="flex items-center justify-center self-center w-8 h-8">
-                <div className="w-5 h-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-              </div>
+          {/* Mobile: Harvest Notice above the button group + Button Group */}
+          <div className="absolute bottom-4 left-4 right-4 z-10 flex flex-col gap-3 items-start pointer-events-none">
+            {/* Harvest Notice over the map (only while the sheet is closed) */}
+            {!sidebarOpen && !harvestNoticeDismissed && (
+              <HarvestNotice
+                onClose={dismissHarvestNotice}
+                className="w-full shadow-lg pointer-events-auto"
+              />
             )}
+
+            {/* Mobile Button Group: Satellite + 3D + Measure */}
+            <div className="flex gap-2 items-end pointer-events-auto">
+              <SatelliteToggleButton
+                isSatelliteView={isSatelliteView}
+                onToggle={toggleSatelliteView}
+                isMobile={true}
+              />
+              <HistoricalAerialsButton
+                layersVisible={aerialLayersVisible}
+                onToggleAll={toggleAllAerialLayers}
+                onToggleLayer={toggleAerialLayer}
+                onToggleGroup={toggleGroupAerialLayers}
+                isMobile={true}
+                isDisabled={!isInBWBounds}
+              />
+              <ProtectedAreasButton
+                layersVisible={protectedLayersVisible}
+                onToggleAll={toggleAllProtectedLayers}
+                onToggleLayer={toggleProtectedLayer}
+                isMobile={true}
+              />
+              <MapControlButton
+                isActive={is3DMode}
+                onClick={toggle3DMode}
+                title={
+                  is3DMode ? "3D-Ansicht deaktivieren" : "3D-Ansicht aktivieren"
+                }
+                label="Gelände"
+                isMobile={true}
+                eventName="3d-toggle"
+              >
+                <span
+                  className={`text-sm font-bold leading-none ${is3DMode ? "text-primary" : "text-gray-700 group-hover:text-primary"} transition-colors`}
+                >
+                  3D
+                </span>
+              </MapControlButton>
+              <MeasureButton
+                isMeasureMode={isMeasureMode}
+                onToggle={toggleMeasureMode}
+                isMobile={true}
+              />
+              {isLayerLoading && (
+                <div className="flex items-center justify-center self-center w-8 h-8">
+                  <div className="w-5 h-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Measure Panel */}
@@ -2024,6 +2064,10 @@ export default function MapPage() {
                         onClearSearch={handleClearSearch}
                       />
                       <RecentSearches onSearchClick={handleRecentSearchClick} />
+                    </div>
+
+                    <div className="px-6 pt-1">
+                      <HarvestNotice />
                     </div>
 
                     <MapLegend lastUpdated={lastUpdated} />
