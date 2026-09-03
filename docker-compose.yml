@@ -12,12 +12,12 @@ services:
     labels:
       traefik.enable: true
       # HTTPS Router
-      traefik.http.routers.streuobstwiesen.rule: Host(`portal-streuobst.de`)
+      traefik.http.routers.streuobstwiesen.rule: Host(`portal-streuobst.de`) || Host(`www.portal-streuobst.de`)
       traefik.http.routers.streuobstwiesen.entrypoints: websecure
       traefik.http.routers.streuobstwiesen.tls: true
       traefik.http.routers.streuobstwiesen.tls.certresolver: letsencrypt
       # HTTP Router with redirect to HTTPS
-      traefik.http.routers.streuobstwiesen-http.rule: Host(`portal-streuobst.de`)
+      traefik.http.routers.streuobstwiesen-http.rule: Host(`portal-streuobst.de`) || Host(`www.portal-streuobst.de`)
       traefik.http.routers.streuobstwiesen-http.entrypoints: web
       traefik.http.routers.streuobstwiesen-http.middlewares: streuobst-to-https
       # Redirect Middleware
@@ -58,7 +58,7 @@ services:
     labels:
       traefik.enable: true
       # Route /api/ directly through Traefik (rate-limited)
-      traefik.http.routers.tree-api.rule: "Host(`portal-streuobst.de`) && PathPrefix(`/api/`)"
+      traefik.http.routers.tree-api.rule: "(Host(`portal-streuobst.de`) || Host(`www.portal-streuobst.de`)) && PathPrefix(`/api/`)"
       traefik.http.routers.tree-api.entrypoints: websecure
       traefik.http.routers.tree-api.tls: true
       traefik.http.routers.tree-api.tls.certresolver: letsencrypt
