@@ -908,6 +908,8 @@ export default function MapPage() {
             "interpolate",
             ["linear"],
             ["zoom"],
+            8,
+            0.5,
             12,
             3,
             16,
