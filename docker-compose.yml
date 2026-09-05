@@ -23,9 +23,13 @@ services:
       # Redirect Middleware (http -> https)
       traefik.http.middlewares.streuobst-to-https.redirectscheme.scheme: https
       traefik.http.middlewares.streuobst-to-https.redirectscheme.permanent: true
-      # www -> non-www Router (http + https)
+      # www -> non-www Router (http)
+      traefik.http.routers.streuobstwiesen-www-http.rule: Host(`www.portal-streuobst.de`)
+      traefik.http.routers.streuobstwiesen-www-http.entrypoints: web
+      traefik.http.routers.streuobstwiesen-www-http.middlewares: streuobst-www-to-nonwww
+      # www -> non-www Router (https)
       traefik.http.routers.streuobstwiesen-www.rule: Host(`www.portal-streuobst.de`)
-      traefik.http.routers.streuobstwiesen-www.entrypoints: web,websecure
+      traefik.http.routers.streuobstwiesen-www.entrypoints: websecure
       traefik.http.routers.streuobstwiesen-www.tls: true
       traefik.http.routers.streuobstwiesen-www.tls.certresolver: letsencrypt
       traefik.http.routers.streuobstwiesen-www.middlewares: streuobst-www-to-nonwww
