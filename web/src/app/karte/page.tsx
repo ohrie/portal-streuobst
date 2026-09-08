@@ -31,6 +31,11 @@ import {
   type SelectedFeature,
 } from "@/lib/geoArea";
 import {
+  type AerialCoverage,
+  loadAerialCoverage,
+  yearsCoveringBounds,
+} from "@/lib/historicalAerialCoverage";
+import {
   clearMeasureSession,
   loadMeasureSession,
   saveMeasureSession,
@@ -110,6 +115,13 @@ export default function MapPage() {
   // BW bounding box for historical aerials (all WMS services are BW-only)
   const BW_BOUNDS = { west: 7.2, east: 10.7, south: 47.4, north: 50.0 };
   const [isInBWBounds, setIsInBWBounds] = useState(true);
+  // Per-year coverage of the historical aerials — each year only covers the
+  // strips flown that year, so years without imagery here are not offered.
+  // null = coverage grid not loaded yet, then all years stay available.
+  const aerialCoverage = useRef<AerialCoverage | null>(null);
+  const [availableAerialYears, setAvailableAerialYears] =
+    useState<Set<string> | null>(null);
+  const [isMapReady, setIsMapReady] = useState(false);
   const [isLayerLoading, setIsLayerLoading] = useState(true);
   const [isMeasureMode, setIsMeasureMode] = useState(false);
   const [selectedFeatures, setSelectedFeatures] = useState<SelectedFeature[]>(
@@ -472,6 +484,7 @@ export default function MapPage() {
     );
 
     map.current.on("load", () => {
+      setIsMapReady(true);
       // Add satellite raster source
       map.current?.addSource("satellite", {
         type: "raster",
@@ -1370,6 +1383,19 @@ export default function MapPage() {
       });
 
       // Bounds check for historical aerials (BW only)
+      const refreshAerialAvailability = () => {
+        const coverage = aerialCoverage.current;
+        const b = map.current?.getBounds();
+        if (!coverage || !b) return;
+        setAvailableAerialYears(
+          yearsCoveringBounds(coverage, {
+            west: b.getWest(),
+            south: b.getSouth(),
+            east: b.getEast(),
+            north: b.getNorth(),
+          }),
+        );
+      };
       const checkBWBounds = () => {
         if (!map.current) return;
         const b = map.current.getBounds();
@@ -1381,6 +1407,17 @@ export default function MapPage() {
           b.getSouth() > BW_BOUNDS.north
         );
         setIsInBWBounds(overlaps);
+        if (!overlaps) return;
+        // Load the coverage grid the first time BW comes into view
+        if (aerialCoverage.current) {
+          refreshAerialAvailability();
+        } else {
+          loadAerialCoverage().then((coverage) => {
+            if (!coverage) return;
+            aerialCoverage.current = coverage;
+            refreshAerialAvailability();
+          });
+        }
       };
       map.current?.on("moveend", checkBWBounds);
       checkBWBounds();
@@ -1745,60 +1782,57 @@ export default function MapPage() {
     setProtectedLayersVisible(update);
   };
 
+  // The three aerial toggles only track which years the user picked; the
+  // effect below decides what is actually shown, because a year is hidden
+  // while the current view lies outside its coverage.
   const toggleAerialLayer = (year: string) => {
-    if (!map.current) return;
-    const mapLayerId = `hist-layer-${year}`;
-    if (!map.current.getLayer(mapLayerId)) return;
-    const current = map.current.getLayoutProperty(mapLayerId, "visibility");
-    const next = current === "visible" ? "none" : "visible";
-    map.current.setLayoutProperty(mapLayerId, "visibility", next);
-    setAerialLayersVisible((prev) => {
-      const updated = { ...prev, [year]: next === "visible" };
-      updateVectorLayerColors(
-        isSatelliteView,
-        Object.values(updated).some(Boolean),
-      );
-      return updated;
-    });
+    setAerialLayersVisible((prev) => ({ ...prev, [year]: !prev[year] }));
   };
 
+  const isAerialYearVisible = (year: string) =>
+    (aerialLayersVisible[year] ?? false) &&
+    (availableAerialYears === null || availableAerialYears.has(year));
+
   const toggleAllAerialLayers = () => {
-    if (!map.current) return;
-    const anyVisible = Object.values(aerialLayersVisible).some(Boolean);
-    const next = anyVisible ? "none" : "visible";
+    const anyVisible =
+      Object.keys(aerialLayersVisible).some(isAerialYearVisible);
     const update: Record<string, boolean> = {};
     for (const year of Object.keys(aerialLayersVisible)) {
-      const mapLayerId = `hist-layer-${year}`;
-      if (map.current.getLayer(mapLayerId)) {
-        map.current.setLayoutProperty(mapLayerId, "visibility", next);
-      }
-      update[year] = next === "visible";
+      update[year] = !anyVisible;
     }
     setAerialLayersVisible(update);
-    updateVectorLayerColors(isSatelliteView, next === "visible");
   };
 
   const toggleGroupAerialLayers = (group: string) => {
-    if (!map.current) return;
     const groupYears = HISTORICAL_AERIAL_LAYERS.filter(
       (l) => l.group === group,
     ).map((l) => l.id);
-    const anyGroupVisible = groupYears.some((y) => aerialLayersVisible[y]);
-    const next = anyGroupVisible ? "none" : "visible";
+    const anyGroupVisible = groupYears.some(isAerialYearVisible);
     const update: Record<string, boolean> = { ...aerialLayersVisible };
     for (const year of groupYears) {
-      const mapLayerId = `hist-layer-${year}`;
-      if (map.current.getLayer(mapLayerId)) {
-        map.current.setLayoutProperty(mapLayerId, "visibility", next);
-      }
-      update[year] = next === "visible";
+      update[year] = !anyGroupVisible;
     }
     setAerialLayersVisible(update);
-    updateVectorLayerColors(
-      isSatelliteView,
-      Object.values(update).some(Boolean),
-    );
   };
+
+  // Apply the picked years to the map: a year stays hidden while it has no
+  // imagery for the current view, and reappears once it is covered again.
+  useEffect(() => {
+    if (!map.current) return;
+    let anyVisible = false;
+    for (const layer of HISTORICAL_AERIAL_LAYERS) {
+      const mapLayerId = `hist-layer-${layer.id}`;
+      if (!map.current.getLayer(mapLayerId)) continue;
+      const visible = isAerialYearVisible(layer.id);
+      if (visible) anyVisible = true;
+      map.current.setLayoutProperty(
+        mapLayerId,
+        "visibility",
+        visible ? "visible" : "none",
+      );
+    }
+    updateVectorLayerColors(isSatelliteView, anyVisible);
+  }, [aerialLayersVisible, availableAerialYears, isSatelliteView, isMapReady]);
 
   const toggleTreeAutoDetect = () => {
     const entering = !isTreeAutoDetect;
@@ -1961,6 +1995,7 @@ export default function MapPage() {
                 onToggleGroup={toggleGroupAerialLayers}
                 isMobile={true}
                 isDisabled={!isInBWBounds}
+                availableYears={availableAerialYears}
               />
               <ProtectedAreasButton
                 layersVisible={protectedLayersVisible}
@@ -2117,6 +2152,7 @@ export default function MapPage() {
               onToggleGroup={toggleGroupAerialLayers}
               isMobile={false}
               isDisabled={!isInBWBounds}
+              availableYears={availableAerialYears}
             />
             <ProtectedAreasButton
               layersVisible={protectedLayersVisible}

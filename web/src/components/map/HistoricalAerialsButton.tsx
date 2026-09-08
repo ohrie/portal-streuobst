@@ -60,6 +60,11 @@ interface Props {
   onToggleGroup: (group: string) => void;
   isMobile: boolean;
   isDisabled?: boolean;
+  /**
+   * Jahre, die den aktuellen Kartenausschnitt abdecken. null = Abdeckung
+   * unbekannt (noch nicht geladen), dann werden alle Jahre angeboten.
+   */
+  availableYears?: Set<string> | null;
 }
 
 export default function HistoricalAerialsButton({
@@ -69,19 +74,28 @@ export default function HistoricalAerialsButton({
   onToggleGroup,
   isMobile,
   isDisabled,
+  availableYears,
 }: Props) {
-  const isAnyActive = Object.values(layersVisible).some(Boolean);
+  const isAvailable = (year: string) =>
+    !availableYears || availableYears.has(year);
 
-  const layers = HISTORICAL_AERIAL_LAYERS.map((l) => ({
-    id: l.id,
-    label: l.label,
-    group: l.group,
-    isActive: layersVisible[l.id] ?? false,
-  }));
+  const layers = HISTORICAL_AERIAL_LAYERS.filter((l) => isAvailable(l.id)).map(
+    (l) => ({
+      id: l.id,
+      label: l.label,
+      group: l.group,
+      isActive: layersVisible[l.id] ?? false,
+    }),
+  );
+
+  const isAnyActive = layers.some((l) => l.isActive);
+  // Innerhalb von BW, aber kein Jahr deckt diesen Ausschnitt ab
+  const noYearsHere = !isDisabled && layers.length === 0;
+  const disabled = isDisabled || noYearsHere;
 
   const icon = (
     <svg
-      className={`w-5 h-5 transition-colors ${isAnyActive && !isDisabled ? "text-primary" : "text-gray-700 group-hover:text-primary"}`}
+      className={`w-5 h-5 transition-colors ${isAnyActive && !disabled ? "text-primary" : "text-gray-700 group-hover:text-primary"}`}
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
@@ -114,9 +128,17 @@ export default function HistoricalAerialsButton({
       onToggleGroup={onToggleGroup}
       isMobile={isMobile}
       extraNote="Nur Baden-Württemberg"
-      panelNote="Nicht jedes Gebiet ist durch jedes Erfassungsjahr abgedeckt."
-      isDisabled={isDisabled}
-      disabledMessage="Historische Luftbilder sind nur für Baden-Württemberg verfügbar"
+      panelNote={
+        availableYears
+          ? "Es werden nur Jahre angezeigt, die den aktuellen Kartenausschnitt abdecken."
+          : "Nicht jedes Gebiet ist durch jedes Erfassungsjahr abgedeckt."
+      }
+      isDisabled={disabled}
+      disabledMessage={
+        noYearsHere
+          ? "Für diesen Kartenausschnitt gibt es keine historischen Luftbilder"
+          : "Historische Luftbilder sind nur für Baden-Württemberg verfügbar"
+      }
       compactItems={true}
     />
   );

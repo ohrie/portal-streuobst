@@ -71,3 +71,14 @@ python download_streuobst_routes.py [--search TEXT] [--search-field name|descrip
 ```
 
 `--test` lädt nur 5 Treffer. Ausgabe: `{suchbegriff}_routes.geojson` und `{suchbegriff}_routes_no_geometry.geojson`.
+
+## Historische Luftbilder – Abdeckung pro Jahr ermitteln
+
+`build_historical_aerial_coverage.py` ermittelt, welche Gebiete der LGL-BW-WMS je Erfassungsjahr tatsächlich abdeckt. Die Capabilities der Dienste melden nur eine BBox für ganz Baden-Württemberg, obwohl pro Jahr jeweils nur ein Teil des Landes beflogen wurde. Das Skript tastet die Dienste deshalb ab: ein GetMap pro Jahr über die BW-Ausdehnung, dann wird der Alphakanal auf ein 1-km-Raster reduziert.
+
+```bash
+source venv/bin/activate
+python build_historical_aerial_coverage.py [--cell-size 1000] [--out PATH]
+```
+
+Ausgabe: `web/public/data/historical-aerial-coverage.json` (lauflängenkodiertes Raster, ca. 76 KB). Die Kartenansicht lädt die Datei und blendet Jahre aus, die den aktuellen Ausschnitt nicht abdecken. Nach einer Neudigitalisierung durch das LGL (neue Jahrgänge, nachgelieferte Gebiete) das Skript erneut laufen lassen und die Datei committen.
