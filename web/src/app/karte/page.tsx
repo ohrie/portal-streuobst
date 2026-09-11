@@ -15,7 +15,7 @@ import MapLegend from "@/components/map/MapLegend";
 import HarvestNotice from "@/components/map/HarvestNotice";
 import MeasureButton from "@/components/map/MeasureButton";
 import MeasurePanel from "@/components/map/MeasurePanel";
-import { createOSMPopupHTML } from "@/components/map/OSMPopup";
+import { openFeaturePopup } from "@/components/map/OSMPopup";
 import ProtectedAreasButton from "@/components/map/ProtectedAreasButton";
 import RecentSearches, {
   addRecentSearch,
@@ -1027,8 +1027,12 @@ export default function MapPage() {
           return;
         }
 
-        const isMeadowOrchard = propsObj?.orchard === "meadow_orchard";
-        const isPlantation = propsObj?.orchard === "plantation";
+        const kind =
+          propsObj?.orchard === "meadow_orchard"
+            ? "meadow_orchard"
+            : propsObj?.orchard === "plantation"
+              ? "plantation"
+              : "orchard";
         const osmId = propsObj?.osm_id; // tippecanoe uses osm_id property
         const areaM2 = calculateAreaM2(feature.geometry as GeoJSON.Geometry);
         const treeCount = map.current
@@ -1038,36 +1042,13 @@ export default function MapPage() {
             )
           : undefined;
 
-        const additionalContent = isMeadowOrchard
-          ? ""
-          : isPlantation
-            ? '<p class="text-sm text-gray-500 mb-2">Kommerzielle Obstplantage</p>'
-            : `<div class="bg-yellow-50 border border-yellow-300 rounded p-2 mb-2">
-              <p class="text-sm text-yellow-800 font-medium mb-1">⚠️ Tag fehlt noch</p>
-              <p class="text-xs text-yellow-700 mb-2">Dieser Obstgarten ist noch nicht in OSM kategorisiert.</p>
-              <p class="text-xs text-yellow-700 mb-2">Füge den Key <code class="bg-yellow-100 px-1 rounded">orchard=*</code> hinzu, um die Art festzulegen.</p>
-            </div>`;
-
-        const title = isMeadowOrchard
-          ? "Streuobstwiese"
-          : isPlantation
-            ? "Obstplantage"
-            : "Obstgarten";
-
-        new mapboxgl.Popup()
-          .setLngLat(coordinates)
-          .setHTML(
-            createOSMPopupHTML({
-              title: title,
-              osmId: osmId,
-              additionalContent: additionalContent,
-              showOSMTags: true,
-              properties: propsObj,
-              areaM2,
-              treeCount,
-            }),
-          )
-          .addTo(map.current!);
+        openFeaturePopup(map.current!, coordinates, {
+          kind,
+          osmId,
+          properties: propsObj,
+          areaM2,
+          treeCount,
+        });
       });
 
       map.current?.on(
@@ -1157,19 +1138,13 @@ export default function MapPage() {
               )
             : undefined;
 
-          new mapboxgl.Popup()
-            .setLngLat(coordinates)
-            .setHTML(
-              createOSMPopupHTML({
-                title: "Streuobstwiese",
-                description:
-                  "Traditionelle Streuobstwiese mit verschiedenen Obstsorten",
-                osmId: osmId ? String(osmId) : undefined,
-                areaM2,
-                treeCount,
-              }),
-            )
-            .addTo(map.current!);
+          openFeaturePopup(map.current!, coordinates, {
+            kind: "meadow_orchard",
+            osmId: osmId ?? undefined,
+            properties: propsObj,
+            areaM2,
+            treeCount,
+          });
         },
       );
 
@@ -1185,17 +1160,11 @@ export default function MapPage() {
         const osmId = feature.id; // osmium export uses top-level id field with type_id format
         const propsObj = feature.properties as Record<string, any> | null;
 
-        new mapboxgl.Popup()
-          .setLngLat(coordinates)
-          .setHTML(
-            createOSMPopupHTML({
-              title: "Obstbaum",
-              osmId: osmId ? String(osmId) : undefined,
-              showOSMTags: true,
-              properties: propsObj ?? undefined,
-            }),
-          )
-          .addTo(map.current!);
+        openFeaturePopup(map.current!, coordinates, {
+          kind: "tree",
+          osmId: osmId ?? undefined,
+          properties: propsObj,
+        });
       });
 
       // Change cursor on hover for streuobstwiesen layers

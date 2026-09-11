@@ -73,6 +73,37 @@ h6 {
   border-left-color: var(--color-accent);
 }
 
+/* Detail popup for orchards and trees (components/map/OSMPopup.tsx) */
+.feature-popup .mapboxgl-popup-content {
+  padding: 0;
+  border-radius: 16px;
+  overflow: hidden;
+  background: var(--color-background);
+  box-shadow:
+    0 12px 32px rgba(70, 89, 2, 0.18),
+    0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.feature-popup.mapboxgl-popup-anchor-top .mapboxgl-popup-tip,
+.feature-popup.mapboxgl-popup-anchor-top-left .mapboxgl-popup-tip,
+.feature-popup.mapboxgl-popup-anchor-top-right .mapboxgl-popup-tip {
+  border-bottom-color: var(--color-background);
+}
+
+.feature-popup.mapboxgl-popup-anchor-bottom .mapboxgl-popup-tip,
+.feature-popup.mapboxgl-popup-anchor-bottom-left .mapboxgl-popup-tip,
+.feature-popup.mapboxgl-popup-anchor-bottom-right .mapboxgl-popup-tip {
+  border-top-color: var(--color-background);
+}
+
+.feature-popup.mapboxgl-popup-anchor-left .mapboxgl-popup-tip {
+  border-right-color: #fff;
+}
+
+.feature-popup.mapboxgl-popup-anchor-right .mapboxgl-popup-tip {
+  border-left-color: #fff;
+}
+
 /* Markdown-rendered description in route detail panel */
 .route-description p {
   margin-bottom: 0.5rem;

@@ -17,3 +17,37 @@ export function osmIdToJosmObject(osmId: string): string | null {
   if (type === "a") return num % 2 === 0 ? `w${num / 2}` : `r${(num - 1) / 2}`;
   return null;
 }
+
+export type OsmElementType = "node" | "way" | "relation";
+
+export interface OsmElementRef {
+  type: OsmElementType;
+  id: string;
+}
+
+const JOSM_PREFIX_TO_TYPE: Record<string, OsmElementType> = {
+  n: "node",
+  w: "way",
+  r: "relation",
+};
+
+/**
+ * Decodes an osmium type_id string (see osmIdToJosmObject) to the original OSM
+ * element. A bare number is treated as a way ID.
+ */
+export function decodeOsmId(osmId: string | number): OsmElementRef | null {
+  const raw = String(osmId);
+  if (/^\d+$/.test(raw)) return { type: "way", id: raw };
+
+  const josm = osmIdToJosmObject(raw);
+  if (!josm) return null;
+  return { type: JOSM_PREFIX_TO_TYPE[josm[0]], id: josm.slice(1) };
+}
+
+export function osmElementUrl({ type, id }: OsmElementRef): string {
+  return `https://www.openstreetmap.org/${type}/${id}`;
+}
+
+export function osmIdEditorUrl({ type, id }: OsmElementRef): string {
+  return `https://www.openstreetmap.org/edit?editor=id&${type}=${id}`;
+}
