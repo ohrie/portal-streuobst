@@ -77,6 +77,35 @@ GERMAN_NAME = {
 }
 
 
+# ---------------------------------------------------------------------------
+# Artnamen für Bäume, die nur ``species:wikidata`` tragen (kein ``species``/
+# ``species:de``). Bewusst hart kodiert statt dynamisch abgefragt: aufgenommen
+# sind nur Werte, die in den Obstbaum-Daten tatsächlich vorkommen (Stand
+# 2026-09) und auf eine *Art* verweisen. Gattungs-, Sorten- und Allgemein-Items
+# (z.B. Q190545 Prunus, Q60458657 Apfelbaum, Q1558583 Holsteiner Cox) fehlen
+# absichtlich – dort greift der Gattungsname.
+# Wert = (wissenschaftlicher Name, deutscher Name).
+# ---------------------------------------------------------------------------
+SPECIES_BY_WIKIDATA = {
+    "Q18674606": ("Malus domestica", "Kulturapfel"),
+    "Q146281": ("Pyrus communis", "Kultur-Birne"),
+    "Q46871": ("Juglans regia", "Echte Walnuss"),
+    "Q22699": ("Castanea sativa", "Edelkastanie"),
+    "Q165321": ("Prunus serrulata", "Japanische Blütenkirsche"),
+}
+
+
+def derived_species(tags) -> tuple[str, str] | None:
+    """(wissenschaftlicher, deutscher) Artname aus species:wikidata.
+
+    Nur für Bäume ohne ``species`` und ``species:de``; sonst ``None``.
+    """
+    if "species" in tags or "species:de" in tags:
+        return None
+    wikidata = tags.get("species:wikidata")
+    return SPECIES_BY_WIKIDATA.get(wikidata.strip()) if wikidata else None
+
+
 def _norm(value: str) -> str:
     """Normalisiere einen Rohwert: trim, lower, Umlaute -> ASCII, Mehrfach-Spaces."""
     v = value.strip().lower()

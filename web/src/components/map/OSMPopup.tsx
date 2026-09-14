@@ -213,7 +213,7 @@ function FeaturePopup({
   const genus = tag(props, "genus");
   const isFruitTree = !!genus && genus in GENUS_DE;
   const fruitName =
-    tag(props, "species:de", "genus:de") ??
+    tag(props, "species:de", "_species_de", "genus:de") ??
     (genus ? GENUS_DE[genus] : undefined);
   const cultivar = tag(
     props,
@@ -221,7 +221,7 @@ function FeaturePopup({
     "taxon:cultivar",
     "cultivar",
   );
-  const scientificName = tag(props, "taxon", "species", "genus");
+  const scientificName = tag(props, "taxon", "species", "_species", "genus");
   const cultivarWikidata = tag(props, "cultivar:wikidata");
 
   const kindLabel = isTree && !isFruitTree ? "Baum" : style.label;
@@ -318,7 +318,8 @@ function FeaturePopup({
   // OpenStreetMap
   const osmElement = osmId != null ? decodeOsmId(osmId) : null;
   const tagEntries = Object.entries(props)
-    .filter(([key]) => key !== "osm_id")
+    // "_"-prefixed keys are derived in the pipeline, not OSM tags
+    .filter(([key]) => key !== "osm_id" && !key.startsWith("_"))
     .sort(([a], [b]) => a.localeCompare(b));
 
   return (

@@ -21,7 +21,7 @@ from shapely.ops import unary_union
 import geopandas as gpd
 import osmium
 
-from tree_genera import canonical_genus
+from tree_genera import canonical_genus, derived_species
 
 # Setup logging
 _log_dir = Path(__file__).parent / "logs"
@@ -326,6 +326,11 @@ def extract_fruit_trees_geojson(germany_file: Path, output_file: Path) -> bool:
                 continue
             props = {k: v for k, v in tags}
             props["genus"] = canon  # normalisierte, kanonische Gattung
+            # Abgeleitete (nicht-OSM) Felder tragen ein "_"-Präfix und werden im
+            # Frontend nicht als OSM-Tag angezeigt.
+            species = derived_species(tags)
+            if species:
+                props["_species"], props["_species_de"] = species
             osm_id = f"n{obj.id}"
             props["osm_id"] = osm_id
             features.append({

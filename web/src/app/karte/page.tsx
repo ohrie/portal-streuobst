@@ -709,7 +709,8 @@ export default function MapPage() {
         },
       });
 
-      // Tree species label (zoom 19+): species:de → species → genus:de → genus
+      // Tree species label (zoom 19+): species:de → species → derived name
+      // from species:wikidata (_species_de) → genus:de → genus
       map.current?.addLayer({
         id: "baeume-label-species",
         type: "symbol",
@@ -721,6 +722,7 @@ export default function MapPage() {
             "coalesce",
             ["get", "species:de"],
             ["get", "species"],
+            ["get", "_species_de"],
             ["get", "genus:de"],
             ["get", "genus"],
           ],
