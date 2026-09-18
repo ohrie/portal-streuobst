@@ -57,12 +57,8 @@ export default function HarvestNotice({
           <p
             className={`text-sm text-orange-900 leading-relaxed ${onClose ? "pr-6" : ""}`}
           >
-            Bitte beachte:{" "}
-            Obst von Streuobstwiesen darf nur mit{" "}
-            <strong>
-               ausdrücklicher Erlaubnis geerntet
-              werden!
-            </strong>
+            Bitte beachte: Obst von Streuobstwiesen darf nur mit{" "}
+            <strong>ausdrücklicher Erlaubnis geerntet werden!</strong>
           </p>
         </div>
       </div>

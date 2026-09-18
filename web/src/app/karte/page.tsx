@@ -6,13 +6,14 @@ import "mapbox-gl/dist/mapbox-gl.css";
 import { AlertCircle, Menu, X } from "lucide-react";
 import { useTransform } from "motion/react";
 import { Sheet, type SheetRef } from "react-modal-sheet";
+import BestMappedOrchards from "@/components/map/BestMappedOrchards";
 import EditButton from "@/components/map/EditButton";
+import HarvestNotice from "@/components/map/HarvestNotice";
 import HistoricalAerialsButton, {
   HISTORICAL_AERIAL_LAYERS,
 } from "@/components/map/HistoricalAerialsButton";
 import MapControlButton from "@/components/map/MapControlButton";
 import MapLegend from "@/components/map/MapLegend";
-import HarvestNotice from "@/components/map/HarvestNotice";
 import MeasureButton from "@/components/map/MeasureButton";
 import MeasurePanel from "@/components/map/MeasurePanel";
 import { openFeaturePopup } from "@/components/map/OSMPopup";
@@ -24,6 +25,7 @@ import RecentSearches, {
 import RouteDetailPanel from "@/components/map/RouteDetailPanel";
 import SatelliteToggleButton from "@/components/map/SatelliteToggleButton";
 import SearchBox, { type SearchResult } from "@/components/map/SearchBox";
+import type { BestMappedOrchard } from "@/data/bestMappedOrchards";
 import {
   calculateAreaM2,
   countTreesInPolygon,
@@ -65,6 +67,33 @@ function applyLabelStyle(datum: LabelDatum) {
   const { el, feature, index } = datum;
   el.textContent = feature.name || `Fläche ${index + 1}`;
   el.style.cssText = `background:#3B82F6;color:#fff;padding:2px 7px;border-radius:12px;font-size:10px;font-weight:600;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,0.3);pointer-events:none;`;
+}
+
+// Popup props for an area feature from the "wiesen" or "streuobstwiesen" layer
+function areaPopupProps(
+  map: mapboxgl.Map,
+  feature: mapboxgl.MapboxGeoJSONFeature,
+): Parameters<typeof openFeaturePopup>[2] {
+  const propsObj: Record<string, unknown> = feature.properties || {};
+  const geometry = feature.geometry as GeoJSON.Geometry;
+  const isStreuobstLayer = feature.layer?.id === "streuobstwiesen-fill";
+  const kind = isStreuobstLayer
+    ? "meadow_orchard"
+    : propsObj.orchard === "meadow_orchard"
+      ? "meadow_orchard"
+      : propsObj.orchard === "plantation"
+        ? "plantation"
+        : "orchard";
+  return {
+    kind,
+    // wiesen: tippecanoe osm_id property; streuobstwiesen: top-level feature id
+    osmId: isStreuobstLayer
+      ? (feature.id ?? undefined)
+      : (propsObj.osm_id as string | number | undefined),
+    properties: propsObj,
+    areaM2: calculateAreaM2(geometry),
+    treeCount: countTreesInPolygon(map, geometry),
+  };
 }
 
 // Helper function to create OSM iD editor URL with coordinates and zoom
@@ -456,6 +485,47 @@ export default function MapPage() {
     }
   };
 
+  // Zoom to a well-mapped orchard from the sidebar list and open its popup
+  const handleBestMappedClick = (orchard: BestMappedOrchard) => {
+    const m = map.current;
+    if (!m) return;
+
+    if (isMobile) setSidebarOpen(false);
+
+    const openPopup = () => {
+      if (isMeasureModeRef.current) return;
+      const feature = m.queryRenderedFeatures(m.project(orchard.center), {
+        layers: ["wiesen-fill", "streuobstwiesen-fill"],
+      })[0];
+      if (!feature) return;
+      openFeaturePopup(m, orchard.center, areaPopupProps(m, feature));
+    };
+
+    m.once("moveend", () => {
+      if (m.areTilesLoaded()) openPopup();
+      else m.once("idle", openPopup);
+    });
+
+    const [west, south, east, north] = orchard.bbox;
+    m.fitBounds(
+      [
+        [west, south],
+        [east, north],
+      ],
+      {
+        // Desktop sidebar overlays the map, keep the area clear of it
+        padding: {
+          top: 80,
+          bottom: 80,
+          right: 80,
+          left: isMobile || !sidebarOpen ? 80 : sidebarWidth + 80,
+        },
+        maxZoom: 18,
+        duration: 2000,
+      },
+    );
+  };
+
   useEffect(() => {
     // Re-run initialization when `isMobile` changes to ensure the map attaches to the correct container/layout
     if (map.current) return;
@@ -812,7 +882,7 @@ export default function MapPage() {
 
       // Load partner logos as map images
       const loadImage = (url: string, id: string) => {
-        return new Promise<void>((resolve, reject) => {
+        return new Promise<void>((resolve, _reject) => {
           map.current?.loadImage(url, (error, image) => {
             if (error) {
               console.warn(`Failed to load image ${id}:`, error);
@@ -1029,28 +1099,12 @@ export default function MapPage() {
           return;
         }
 
-        const kind =
-          propsObj?.orchard === "meadow_orchard"
-            ? "meadow_orchard"
-            : propsObj?.orchard === "plantation"
-              ? "plantation"
-              : "orchard";
-        const osmId = propsObj?.osm_id; // tippecanoe uses osm_id property
-        const areaM2 = calculateAreaM2(feature.geometry as GeoJSON.Geometry);
-        const treeCount = map.current
-          ? countTreesInPolygon(
-              map.current,
-              feature.geometry as GeoJSON.Geometry,
-            )
-          : undefined;
-
-        openFeaturePopup(map.current!, coordinates, {
-          kind,
-          osmId,
-          properties: propsObj,
-          areaM2,
-          treeCount,
-        });
+        if (!map.current) return;
+        openFeaturePopup(
+          map.current,
+          coordinates,
+          areaPopupProps(map.current, feature),
+        );
       });
 
       map.current?.on(
@@ -1132,21 +1186,12 @@ export default function MapPage() {
             return;
           }
 
-          const areaM2 = calculateAreaM2(feature.geometry as GeoJSON.Geometry);
-          const treeCount = map.current
-            ? countTreesInPolygon(
-                map.current,
-                feature.geometry as GeoJSON.Geometry,
-              )
-            : undefined;
-
-          openFeaturePopup(map.current!, coordinates, {
-            kind: "meadow_orchard",
-            osmId: osmId ?? undefined,
-            properties: propsObj,
-            areaM2,
-            treeCount,
-          });
+          if (!map.current) return;
+          openFeaturePopup(
+            map.current,
+            coordinates,
+            areaPopupProps(map.current, feature),
+          );
         },
       );
 
@@ -1520,7 +1565,7 @@ export default function MapPage() {
         {
           source: "streuobstwiesen",
           sourceLayer,
-          id: isNaN(numId) ? id : numId,
+          id: Number.isNaN(numId) ? id : numId,
         },
         { selected: false },
       );
@@ -1585,7 +1630,8 @@ export default function MapPage() {
   // Tree detection helpers
   const updateDetectedTreesLayer = (features: GeoJSON.Feature[]) => {
     const src = map.current?.getSource("detected-trees") as
-      mapboxgl.GeoJSONSource | undefined;
+      | mapboxgl.GeoJSONSource
+      | undefined;
     src?.setData({ type: "FeatureCollection", features });
   };
 
@@ -1930,6 +1976,10 @@ export default function MapPage() {
                       <HarvestNotice />
                     </div>
 
+                    <div className="px-6 pt-4">
+                      <BestMappedOrchards onSelect={handleBestMappedClick} />
+                    </div>
+
                     <MapLegend
                       onClose={() => setSidebarOpen(false)}
                       showCloseButton={true}
@@ -2088,6 +2138,10 @@ export default function MapPage() {
 
                     <div className="px-6 pt-1">
                       <HarvestNotice />
+                    </div>
+
+                    <div className="px-6 pt-3">
+                      <BestMappedOrchards onSelect={handleBestMappedClick} />
                     </div>
 
                     <MapLegend lastUpdated={lastUpdated} />

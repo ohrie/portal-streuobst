@@ -263,7 +263,9 @@ export default function StatistikenPage() {
           area_ha: Math.round(artenStats.orchard_plantation_area_ha),
         },
       ].sort((a, b) =>
-        activeArtenChart === "count" ? b.count - a.count : b.area_ha - a.area_ha,
+        activeArtenChart === "count"
+          ? b.count - a.count
+          : b.area_ha - a.area_ha,
       )
     : [];
   const artenTotalCount = artenChartData.reduce((s, a) => s + a.count, 0);
@@ -643,11 +645,14 @@ export default function StatistikenPage() {
             </div>
             <p className="text-sm text-gray-500 mb-6 max-w-2xl">
               OpenStreetMap unterscheidet drei Arten von Obstgärten: die
-              klassische Streuobstwiese, die Wiese mit
-              Obstbäumen und die intensiv bewirtschaftete Obstplantage.
+              klassische Streuobstwiese, die Wiese mit Obstbäumen und die
+              intensiv bewirtschaftete Obstplantage.
             </p>
 
-            <ResponsiveContainer width="100%" height={artenChartData.length * 64 + 20}>
+            <ResponsiveContainer
+              width="100%"
+              height={artenChartData.length * 64 + 20}
+            >
               <BarChart
                 data={artenChartData}
                 layout="vertical"
@@ -726,10 +731,9 @@ export default function StatistikenPage() {
                 </span>{" "}
                 ({orchardUnspecifiedShare.toFixed(1)} %) auf{" "}
                 <code className="font-mono text-xs">landuse=orchard</code>{" "}
-                Fläche ohne nähere Spezifizierung – diese Obstgärten sind
-                weder als Streuobstwiese noch als Plantage getaggt und
-                müssten in OpenStreetMap noch entsprechend nachgetaggt
-                werden.
+                Fläche ohne nähere Spezifizierung – diese Obstgärten sind weder
+                als Streuobstwiese noch als Plantage getaggt und müssten in
+                OpenStreetMap noch entsprechend nachgetaggt werden.
               </p>
             )}
           </div>

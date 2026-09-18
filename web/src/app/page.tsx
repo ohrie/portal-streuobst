@@ -37,8 +37,8 @@ export default function Home() {
 
               <p className="text-xl md:text-2xl text-foreground mb-8 max-w-4xl leading-relaxed">
                 Die Obstbaumkarte für Deutschland: interaktive Karte mit allen
-                Streuobstwiesen und Informationen zu Bewirtschaftung, Erhalt
-                und Kartierung.
+                Streuobstwiesen und Informationen zu Bewirtschaftung, Erhalt und
+                Kartierung.
               </p>
 
               {/* Button mit größerer Schrift und besseren Abständen */}
@@ -108,9 +108,9 @@ export default function Home() {
                     </h3>
                   </div>
                   <p className="text-sm text-foreground/70 leading-relaxed">
-                    Unsere Obstbaumkarte zeigt detailliert alle
-                    Streuobstwiesen und Obstbäume in Deutschland – basierend
-                    auf OpenStreetMap-Daten.
+                    Unsere Obstbaumkarte zeigt detailliert alle Streuobstwiesen
+                    und Obstbäume in Deutschland – basierend auf
+                    OpenStreetMap-Daten.
                   </p>
                 </div>
               </div>

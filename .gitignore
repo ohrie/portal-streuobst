@@ -46,3 +46,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 web/next-env.d.ts
+
+# generierte Daten
+web/public/data/historical-aerial-coverage.json
