@@ -25,6 +25,7 @@ import RecentSearches, {
 import RouteDetailPanel from "@/components/map/RouteDetailPanel";
 import SatelliteToggleButton from "@/components/map/SatelliteToggleButton";
 import SearchBox, { type SearchResult } from "@/components/map/SearchBox";
+import UnsupportedBrowserNotice from "@/components/map/UnsupportedBrowserNotice";
 import type { BestMappedOrchard } from "@/data/bestMappedOrchards";
 import {
   calculateAreaM2,
@@ -151,6 +152,9 @@ export default function MapPage() {
   const [availableAerialYears, setAvailableAerialYears] =
     useState<Set<string> | null>(null);
   const [isMapReady, setIsMapReady] = useState(false);
+  // false in the prerendered HTML; stays false if the JS bundle can't run
+  const [hasHydrated, setHasHydrated] = useState(false);
+  const [isWebGLUnsupported, setIsWebGLUnsupported] = useState(false);
   const [isLayerLoading, setIsLayerLoading] = useState(true);
   const [isMeasureMode, setIsMeasureMode] = useState(false);
   const [selectedFeatures, setSelectedFeatures] = useState<SelectedFeature[]>(
@@ -236,6 +240,11 @@ export default function MapPage() {
       .catch(() => {
         /* silently ignore if tileserver is unavailable */
       });
+  }, []);
+
+  // Removes the "browser too old" fallback once the JS bundle runs
+  useEffect(() => {
+    setHasHydrated(true);
   }, []);
 
   // Detect mobile device
@@ -531,16 +540,28 @@ export default function MapPage() {
     if (map.current) return;
     if (!mapContainer.current) return;
 
-    map.current = new mapboxgl.Map({
-      container: mapContainer.current,
-      style: "mapbox://styles/mapbox/light-v11",
-      hash: true,
-      center: [10.4515, 51.1657], // Center of Germany
-      zoom: 6,
-      minZoom: 5,
-      maxZoom: 22,
-      language: "de",
-    });
+    // Mapbox's recommended check (WebGL 2, Canvas image data, modern JS)
+    if (!mapboxgl.supported()) {
+      setIsWebGLUnsupported(true);
+      return;
+    }
+
+    try {
+      map.current = new mapboxgl.Map({
+        container: mapContainer.current,
+        style: "mapbox://styles/mapbox/light-v11",
+        hash: true,
+        center: [10.4515, 51.1657], // Center of Germany
+        zoom: 6,
+        minZoom: 5,
+        maxZoom: 22,
+        language: "de",
+      });
+    } catch (error) {
+      console.error("Failed to initialize map:", error);
+      setIsWebGLUnsupported(true);
+      return;
+    }
 
     // Add navigation controls
     map.current.addControl(new mapboxgl.NavigationControl(), "top-right");
@@ -1912,6 +1933,16 @@ export default function MapPage() {
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
+      <noscript>
+        <UnsupportedBrowserNotice reason="javascript" />
+      </noscript>
+      {!hasHydrated && (
+        <UnsupportedBrowserNotice
+          reason="javascript"
+          className="animate-delayed-reveal"
+        />
+      )}
+      {isWebGLUnsupported && <UnsupportedBrowserNotice reason="webgl" />}
       {/* Mobile Layout */}
       {isMobile ? (
         <div className="flex-1 relative min-h-0">
