@@ -1609,6 +1609,10 @@ export default function MapPage() {
       saveMeasureSession(selectedFeatures);
       clearMeasureSelection();
     } else {
+      // Tree counting is on by default in measure mode (can still be toggled off)
+      setIsTreeAutoDetect(true);
+      isTreeAutoDetectRef.current = true;
+
       // Restore previous session if available
       const session = loadMeasureSession();
       if (session && session.features.length > 0) {
@@ -1640,6 +1644,11 @@ export default function MapPage() {
             updateDetectedTreesLayer(treeFeatures);
           }
         }
+
+        // Detect trees for restored features that have no result yet
+        session.features
+          .filter((f) => f.detectedTreeCount == null)
+          .forEach((f) => handleDetectTrees(String(f.id)));
       }
     }
 
