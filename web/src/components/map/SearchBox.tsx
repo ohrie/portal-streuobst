@@ -73,7 +73,7 @@ export default function SearchBox({
   }
 
   return (
-    <div>
+    <div className="relative">
       <div className="relative">
         <input
           type="text"
@@ -105,7 +105,7 @@ export default function SearchBox({
         <div
           id="search-results-list"
           role="listbox"
-          className="mt-2 bg-white rounded-lg shadow-lg border border-gray-200 max-h-64 overflow-y-auto"
+          className="absolute top-full left-0 right-0 z-30 mt-2 bg-white rounded-lg shadow-lg border border-gray-200 max-h-64 overflow-y-auto"
         >
           {isSearching ? (
             <div className="p-4 text-center text-gray-500">

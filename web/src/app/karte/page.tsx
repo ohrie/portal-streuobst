@@ -2140,42 +2140,50 @@ export default function MapPage() {
                   />
                 ) : (
                   <>
-                    {/* Close Button - Top Right within Sidebar */}
-                    <div className="flex justify-end p-4 pb-0">
-                      <button
-                        type="button"
-                        onClick={() => setSidebarOpen(false)}
-                        className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                        title="Schließen"
-                        aria-label="Kartenlegende schließen"
-                      >
-                        <X className="w-5 h-5 text-gray-600" />
-                      </button>
+                    {/* Fixed header: close button + search */}
+                    <div className="relative z-10 shrink-0">
+                      {/* Close Button - Top Right within Sidebar */}
+                      <div className="flex justify-end p-4 pb-0">
+                        <button
+                          type="button"
+                          onClick={() => setSidebarOpen(false)}
+                          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                          title="Schließen"
+                          aria-label="Kartenlegende schließen"
+                        >
+                          <X className="w-5 h-5 text-gray-600" />
+                        </button>
+                      </div>
+
+                      {/* Search Box */}
+                      <div className="px-6 pb-3">
+                        <SearchBox
+                          searchQuery={searchQuery}
+                          onSearchQueryChange={setSearchQuery}
+                          searchResults={searchResults}
+                          showSearchResults={showSearchResults}
+                          isSearching={isSearching}
+                          onResultClick={handleSearchResultClick}
+                          onClearSearch={handleClearSearch}
+                        />
+                        <RecentSearches
+                          onSearchClick={handleRecentSearchClick}
+                        />
+                      </div>
                     </div>
 
-                    {/* Search Box */}
-                    <div className="px-6 pb-3">
-                      <SearchBox
-                        searchQuery={searchQuery}
-                        onSearchQueryChange={setSearchQuery}
-                        searchResults={searchResults}
-                        showSearchResults={showSearchResults}
-                        isSearching={isSearching}
-                        onResultClick={handleSearchResultClick}
-                        onClearSearch={handleClearSearch}
-                      />
-                      <RecentSearches onSearchClick={handleRecentSearchClick} />
-                    </div>
+                    {/* Scrollable content below the search */}
+                    <div className="flex-1 min-h-0 overflow-y-auto">
+                      <div className="px-6 pt-1">
+                        <HarvestNotice />
+                      </div>
 
-                    <div className="px-6 pt-1">
-                      <HarvestNotice />
-                    </div>
+                      <div className="px-6 pt-3">
+                        <BestMappedOrchards onSelect={handleBestMappedClick} />
+                      </div>
 
-                    <div className="px-6 pt-3">
-                      <BestMappedOrchards onSelect={handleBestMappedClick} />
+                      <MapLegend lastUpdated={lastUpdated} />
                     </div>
-
-                    <MapLegend lastUpdated={lastUpdated} />
                   </>
                 )}
               </div>
