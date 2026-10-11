@@ -56,6 +56,13 @@ const bundesweiteResources: BundesweiteResource[] = [
     description:
       "Initiative, die bundesweit Beratung für ökologische, faire Verpachtung von landwirtschaftlichen Flächen bietet. Streuobstwiesen sind ein Kernthema, da durch Verträge naturnahe Nutzung und Erhalt gefördert werden.",
   },
+  {
+    title: "Förderübersicht der Baumland-Kampagne",
+    link: "https://baumland-kampagne.de/foerderuebersicht/",
+    article: "Zur",
+    description:
+      "Übersicht über Förderprogramme für Streuobstwiesen und Baumpflanzungen in Deutschland.",
+  },
 ];
 
 interface AccordionItem {
