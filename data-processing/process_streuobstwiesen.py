@@ -21,6 +21,7 @@ from shapely.ops import unary_union
 import geopandas as gpd
 import osmium
 
+import build_stats_history
 from tree_genera import canonical_genus, derived_species
 
 # Setup logging
@@ -1112,6 +1113,20 @@ def main(dry_run: bool = False):
                 if config.PORTAL_DATA_DIR:
                     export_stats_json(stats, config.PORTAL_DATA_DIR / "stats.json")
                     logger.info(f"   ✅ stats.json deployed to {config.PORTAL_DATA_DIR}")
+
+                # Verlauf der OSM-Erfassung für das Diagramm auf der Statistikseite.
+                # Darf den restlichen Pipeline-Lauf nicht als fehlgeschlagen markieren.
+                try:
+                    history_file = config.OUTPUT_DIR / "stats_history.json"
+                    build_stats_history.update_history(stats, history_file, csv_file)
+                    logger.info(f"   ✅ stats_history.json updated at {history_file}")
+                    if web_stats_json.parent.exists():
+                        shutil.copy(history_file, web_stats_json.parent / "stats_history.json")
+                    if config.PORTAL_DATA_DIR:
+                        shutil.copy(history_file, config.PORTAL_DATA_DIR / "stats_history.json")
+                        logger.info(f"   ✅ stats_history.json deployed to {config.PORTAL_DATA_DIR}")
+                except Exception as e:
+                    logger.error(f"   ❌ stats_history.json failed: {e}")
 
             # Bundesland-Statistiken direkt im Anschluss erzeugen — sie hängen
             # an all_streuobstwiesen.geojson und liefen bisher nur manuell.

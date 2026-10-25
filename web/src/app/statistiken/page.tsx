@@ -7,6 +7,9 @@ import {
   BarChart,
   CartesianGrid,
   Cell,
+  Legend,
+  Line,
+  LineChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -56,6 +59,12 @@ interface ArtenStats {
   streuobstwiesen_area_ha: number;
 }
 
+interface HistoryPoint {
+  date: string;
+  count: number;
+  area_ha: number;
+}
+
 const PRIMARY = "#754c82";
 const SECONDARY = "#465902";
 const ACCENT = "#D9BC2B";
@@ -75,6 +84,44 @@ function formatDate(iso: string): string {
 
 function formatNum(n: number): string {
   return n.toLocaleString("de-DE");
+}
+
+function formatHistoryDate(
+  isoDay: string,
+  options: Intl.DateTimeFormatOptions,
+): string {
+  return new Date(`${isoDay}T00:00:00`).toLocaleDateString("de-DE", options);
+}
+
+function HistoryTooltip({
+  active,
+  payload,
+  label,
+}: {
+  active?: boolean;
+  payload?: { value: number; name: string }[];
+  label?: string;
+}) {
+  if (!active || !payload?.length || !label) return null;
+  return (
+    <div className="bg-white border border-gray-200 rounded-xl px-4 py-3 shadow-lg text-sm">
+      <p className="font-semibold text-foreground mb-1">
+        {formatHistoryDate(label, {
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+        })}
+      </p>
+      {payload.map((p) => (
+        <p
+          key={p.name}
+          className={`font-bold ${p.name === "Anzahl" ? "text-primary" : "text-secondary"}`}
+        >
+          {formatNum(p.value)} {p.name === "Anzahl" ? "Obstwiesen" : "ha"}
+        </p>
+      ))}
+    </div>
+  );
 }
 
 function formatHa(n: number): string {
@@ -117,6 +164,7 @@ export default function StatistikenPage() {
   const [fruitTreesCount, setFruitTreesCount] = useState<number | null>(null);
   const [genusDist, setGenusDist] = useState<GenusCount[]>([]);
   const [artenStats, setArtenStats] = useState<ArtenStats | null>(null);
+  const [history, setHistory] = useState<HistoryPoint[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeChart, setActiveChart] = useState<"count" | "area">("area");
   const [activeArtenChart, setActiveArtenChart] = useState<"count" | "area">(
@@ -164,6 +212,17 @@ export default function StatistikenPage() {
       })
       .catch(() => {
         /* no tree data available – section stays hidden */
+      });
+
+    // Mapping history is best-effort as well; without it the last section
+    // simply stays hidden.
+    fetch("/stats_history.json")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: { history?: HistoryPoint[] } | null) =>
+        setHistory(data?.history ?? []),
+      )
+      .catch(() => {
+        /* no history available – section stays hidden */
       });
   }, []);
 
@@ -283,6 +342,14 @@ export default function StatistikenPage() {
     artenStats && artenStats.orchards_area_ha > 0
       ? (orchardUnspecifiedAreaHa / artenStats.orchards_area_ha) * 100
       : 0;
+
+  const historyFirst = history[0];
+  const historyLast = history[history.length - 1];
+  const hasHistory = history.length >= 2;
+  const historyGrowthPct = (from: number, to: number) =>
+    from > 0
+      ? `+${(((to - from) / from) * 100).toLocaleString("de-DE", { maximumFractionDigits: 1 })} %`
+      : "";
 
   // Y-axis tick: scientific genus + muted German name below it.
   const renderGenusTick = (props: {
@@ -736,6 +803,108 @@ export default function StatistikenPage() {
                 OpenStreetMap noch entsprechend nachgetaggt werden.
               </p>
             )}
+          </div>
+        </section>
+      )}
+
+      {/* ===================== VERLAUF ===================== */}
+      {hasHistory && (
+        <section className="px-4 py-12 pb-16">
+          <div className="max-w-5xl mx-auto bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                <TrendingUp className="w-5 h-5 text-primary" />
+              </div>
+              <h2 className="text-xl font-bold text-foreground font-heading">
+                Erfassung in OpenStreetMap im Zeitverlauf
+              </h2>
+            </div>
+            <p className="text-sm text-gray-500 mb-2 max-w-2xl">
+              Wie viele Obstwiesen und welche Fläche in OpenStreetMap erfasst
+              sind über die Zeit hinweg.
+            </p>
+            <p className="text-sm text-gray-600 mb-6">
+              Seit{" "}
+              {formatHistoryDate(historyFirst.date, {
+                day: "numeric",
+                month: "long",
+                year: "numeric",
+              })}
+              :{" "}
+              <span className="font-semibold text-primary">
+                {historyLast.count >= historyFirst.count ? "+" : ""}
+                {formatNum(historyLast.count - historyFirst.count)} Obstwiesen (
+                {historyGrowthPct(historyFirst.count, historyLast.count)})
+              </span>
+              ,{" "}
+              <span className="font-semibold text-secondary">
+                {historyLast.area_ha >= historyFirst.area_ha ? "+" : ""}
+                {formatNum(historyLast.area_ha - historyFirst.area_ha)} ha (
+                {historyGrowthPct(historyFirst.area_ha, historyLast.area_ha)})
+              </span>
+            </p>
+
+            <ResponsiveContainer width="100%" height={isMobile ? 300 : 380}>
+              <LineChart
+                data={history}
+                margin={{ top: 8, right: isMobile ? 0 : 8, left: 0, bottom: 8 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis
+                  dataKey="date"
+                  tick={{ fontSize: 11, fill: "#64748b" }}
+                  tickFormatter={(d: string) =>
+                    formatHistoryDate(d, { day: "numeric", month: "short" })
+                  }
+                  minTickGap={isMobile ? 40 : 60}
+                />
+                <YAxis
+                  yAxisId="count"
+                  orientation="left"
+                  width={isMobile ? 48 : 64}
+                  domain={[
+                    (min: number) => Math.floor(min / 1000) * 1000,
+                    (max: number) => Math.ceil(max / 1000) * 1000,
+                  ]}
+                  tick={{ fontSize: 11, fill: PRIMARY }}
+                  tickFormatter={(v: number) => v.toLocaleString("de-DE")}
+                />
+                <YAxis
+                  yAxisId="area"
+                  orientation="right"
+                  width={isMobile ? 48 : 64}
+                  domain={[
+                    (min: number) => Math.floor(min / 1000) * 1000,
+                    (max: number) => Math.ceil(max / 1000) * 1000,
+                  ]}
+                  tick={{ fontSize: 11, fill: SECONDARY }}
+                  tickFormatter={(v: number) => v.toLocaleString("de-DE")}
+                />
+                <Tooltip content={<HistoryTooltip />} />
+                <Legend />
+                <Line
+                  yAxisId="count"
+                  type="monotone"
+                  dataKey="count"
+                  name="Anzahl"
+                  stroke={PRIMARY}
+                  strokeWidth={2.5}
+                  dot={false}
+                />
+                <Line
+                  yAxisId="area"
+                  type="monotone"
+                  dataKey="area_ha"
+                  name="Fläche (ha)"
+                  stroke={SECONDARY}
+                  strokeWidth={2.5}
+                  dot={false}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+            <p className="text-xs text-gray-400 mt-3">
+              Die Zahlen umfassen sowohl Obst-Plantagen, als auch Streuobstwiesen.
+            </p>
           </div>
         </section>
       )}

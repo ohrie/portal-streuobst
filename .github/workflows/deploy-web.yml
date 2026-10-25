@@ -110,6 +110,13 @@ jobs:
               echo '{}' > "$DEPLOY_PATH/data/stats.json"
             fi
 
+            # Same for stats_history.json (a missing bind-mount source would become a directory)
+            if [ -f "/srv/data-streuobst/output/stats_history.json" ]; then
+              cp /srv/data-streuobst/output/stats_history.json "$DEPLOY_PATH/data/stats_history.json"
+            elif [ ! -f "$DEPLOY_PATH/data/stats_history.json" ]; then
+              echo '{"history":[]}' > "$DEPLOY_PATH/data/stats_history.json"
+            fi
+
             # Pull all images defined in docker-compose.yml (includes tree-api)
             docker compose pull
 
