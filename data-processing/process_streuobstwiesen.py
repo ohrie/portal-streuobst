@@ -399,6 +399,27 @@ def merge_tree_geojsons(in_area_file: Path, fruit_file: Path, output_file: Path)
         return False
 
 
+def filter_geojson_by_tag(geojson_file: Path, key: str, value: str) -> bool:
+    """Keep only features tagged key=value.
+
+    osmium tags-filter also copies all members of matching relations, and
+    osmium export turns every tagged closed member way into its own area —
+    e.g. a pond that is only the inner ring of an orchard multipolygon.
+    """
+    try:
+        with open(geojson_file, 'r') as f:
+            data = json.load(f)
+        features = data.get('features', [])
+        kept = [ft for ft in features if ft.get('properties', {}).get(key) == value]
+        data['features'] = kept
+        with open(geojson_file, 'w') as f:
+            json.dump(data, f, separators=(',', ':'))
+        logger.info(f"Filtered {geojson_file.name}: dropped {len(features) - len(kept)} features without {key}={value}")
+        return True
+    except Exception as e:
+        logger.error(f"❌ Failed to filter {geojson_file}: {e}")
+        return False
+
 def convert_to_geojson(input_file: Path, output_file: Path, layer_name: str = None) -> bool:
     """Convert OSM PBF to GeoJSON using osmium export"""
     
@@ -1015,9 +1036,13 @@ def main(dry_run: bool = False):
         else:
             if not convert_to_geojson(orchards_osm, orchards_geojson, "multipolygons"):
                 raise Exception("Failed to convert orchards to GeoJSON")
+            if not filter_geojson_by_tag(orchards_geojson, "landuse", "orchard"):
+                raise Exception("Failed to filter orchards GeoJSON")
             
             if not convert_to_geojson(streuobstwiesen_osm, streuobstwiesen_geojson, "multipolygons"):
                 raise Exception("Failed to convert streuobstwiesen to GeoJSON")
+            if not filter_geojson_by_tag(streuobstwiesen_geojson, "meadow", "meadow_orchard"):
+                raise Exception("Failed to filter streuobstwiesen GeoJSON")
             
             if not convert_to_geojson(trees_osm, trees_geojson, "points"):
                 raise Exception("Failed to convert trees to GeoJSON")
