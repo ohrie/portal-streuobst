@@ -5,6 +5,8 @@ import { useState } from "react";
 import { osmIdToJosmObject } from "@/lib/osmId";
 import MapControlButton from "./MapControlButton";
 
+const MAX_JOSM_OBJECTS = 300;
+
 interface EditButtonProps {
   map: React.RefObject<mapboxgl.Map | null>;
   onOpenIdEditor: () => void;
@@ -36,7 +38,7 @@ export default function EditButton({ map, onOpenIdEditor }: EditButtonProps) {
     const ids = Array.from(seen);
     setJosmData({
       ids,
-      tooMany: ids.length > 100,
+      tooMany: ids.length > MAX_JOSM_OBJECTS,
       zoom: map.current.getZoom(),
     });
   };
@@ -132,7 +134,7 @@ export default function EditButton({ map, onOpenIdEditor }: EditButtonProps) {
             onClick={openInJosm}
             title={
               josmData?.tooMany
-                ? `Zu viele Objekte (${josmData.ids.length} > 100) — bitte zoomen`
+                ? `Zu viele Objekte (${josmData.ids.length} > ${MAX_JOSM_OBJECTS}) — bitte zoomen`
                 : viewportTooLarge
                   ? "Für den Kartenausschnitt bitte näher heranzoomen (ab Zoom 14)"
                   : josmData?.ids.length === 0
@@ -168,7 +170,7 @@ export default function EditButton({ map, onOpenIdEditor }: EditButtonProps) {
 
           {josmData?.tooMany && (
             <p className="text-[10px] text-gray-400 px-2 pb-1 leading-tight">
-              Zu viele Objekte ({josmData.ids.length} &gt; 100) — bitte zoomen
+              Zu viele Objekte ({josmData.ids.length} &gt; {MAX_JOSM_OBJECTS}) — bitte zoomen
             </p>
           )}
           {viewportTooLarge && (
