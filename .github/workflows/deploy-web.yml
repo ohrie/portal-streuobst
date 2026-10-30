@@ -102,20 +102,8 @@ jobs:
             # Pull latest image
             docker pull $REGISTRY/$IMAGE_NAME:latest
             
-            # Ensure stats.json exists as a file
+            # Pipeline output (stats*.json, routes) lands here via PORTAL_DATA_DIR
             mkdir -p "$DEPLOY_PATH/data"
-            if [ -f "/srv/data-streuobst/output/stats.json" ]; then
-              cp /srv/data-streuobst/output/stats.json "$DEPLOY_PATH/data/stats.json"
-            elif [ ! -f "$DEPLOY_PATH/data/stats.json" ]; then
-              echo '{}' > "$DEPLOY_PATH/data/stats.json"
-            fi
-
-            # Same for stats_history.json (a missing bind-mount source would become a directory)
-            if [ -f "/srv/data-streuobst/output/stats_history.json" ]; then
-              cp /srv/data-streuobst/output/stats_history.json "$DEPLOY_PATH/data/stats_history.json"
-            elif [ ! -f "$DEPLOY_PATH/data/stats_history.json" ]; then
-              echo '{"history":[]}' > "$DEPLOY_PATH/data/stats_history.json"
-            fi
 
             # Pull all images defined in docker-compose.yml (includes tree-api)
             docker compose pull

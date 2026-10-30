@@ -4,10 +4,10 @@ services:
     container_name: portal-streuobst
     restart: unless-stopped
     volumes:
-      - ./data/stats.json:/usr/share/nginx/html/stats.json:ro
-      - ./data/stats_laender.json:/usr/share/nginx/html/stats_laender.json:ro
-      - ./data/stats_history.json:/usr/share/nginx/html/stats_history.json:ro
-      - ./data/streuobst_routes.geojson:/usr/share/nginx/html/streuobst_routes.geojson:ro
+      # Mount the whole directory, never single files: a missing bind-mount
+      # source file would be created as an empty directory by Docker.
+      # nginx serves top-level *.json/*.geojson from here (see web/nginx.conf).
+      - ./data:/usr/share/nginx/data:ro
     networks:
       - streuobst_network
     labels:
