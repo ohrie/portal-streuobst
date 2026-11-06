@@ -10,6 +10,7 @@ import {
   Legend,
   Line,
   LineChart,
+  ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -69,6 +70,10 @@ const PRIMARY = "#754c82";
 const SECONDARY = "#465902";
 const ACCENT = "#D9BC2B";
 const _LIGHT = "#F2DC9B";
+
+// Ab diesem Tag wurde die Berechnungsgrundlage korrigiert (zuvor doppelt
+// gezählte Flächen) – der Rückgang im Verlauf hat nichts mit OSM-Daten zu tun.
+const HISTORY_CORRECTION_DATE = "2026-10-31";
 
 function formatDate(iso: string): string {
   try {
@@ -346,7 +351,10 @@ export default function StatistikenPage() {
   const historyFirst = history[0];
   const historyLast = history[history.length - 1];
   const hasHistory = history.length >= 2;
-  const historyGrowthPct = (from: number, to: number) =>
+  const historyCorrectionPoint = history.find(
+    (p) => p.date >= HISTORY_CORRECTION_DATE,
+  );
+  const historyGrowthPct =(from: number, to: number) =>
     from > 0
       ? `+${(((to - from) / from) * 100).toLocaleString("de-DE", { maximumFractionDigits: 1 })} %`
       : "";
@@ -882,6 +890,20 @@ export default function StatistikenPage() {
                 />
                 <Tooltip content={<HistoryTooltip />} />
                 <Legend />
+                {historyCorrectionPoint && (
+                  <ReferenceLine
+                    yAxisId="count"
+                    x={historyCorrectionPoint.date}
+                    stroke="#94a3b8"
+                    strokeDasharray="4 4"
+                    label={{
+                      value: "Korrektur*",
+                      position: "insideTopRight",
+                      fontSize: 11,
+                      fill: "#94a3b8",
+                    }}
+                  />
+                )}
                 <Line
                   yAxisId="count"
                   type="monotone"
@@ -905,6 +927,18 @@ export default function StatistikenPage() {
             <p className="text-xs text-gray-400 mt-3">
               Die Zahlen umfassen sowohl Obst-Plantagen, als auch Streuobstwiesen.
             </p>
+            {historyCorrectionPoint && (
+              <p className="text-xs text-gray-400 mt-1">
+                * Der Rückgang ab dem{" "}
+                {formatHistoryDate(HISTORY_CORRECTION_DATE, {
+                  day: "numeric",
+                  month: "long",
+                })}{" "}
+                geht auf eine korrigierte Berechnungsgrundlage zurück: Zuvor
+                wurden einige Flächen doppelt gezählt. Er spiegelt keine
+                Änderung der Daten in OpenStreetMap wider.
+              </p>
+            )}
           </div>
         </section>
       )}
